@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, 
   Search, 
@@ -8,13 +8,17 @@ import {
   Globe, 
   Table2, 
   BookOpen,
-  Plus,
-  Link as LinkIcon
+  Link as LinkIcon,
+  X
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SourceCard } from "@/components/knowledge/SourceCard";
+import { FileUploadZone } from "@/components/upload/FileUploadZone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 const sources = [
   {
@@ -73,21 +77,47 @@ const sources = [
   },
 ];
 
-const uploadOptions = [
-  { icon: FileText, label: "Document", description: "PDF, DOCX, TXT" },
-  { icon: Table2, label: "Spreadsheet", description: "Excel, CSV" },
-  { icon: BookOpen, label: "Book", description: "EPUB format" },
-  { icon: Globe, label: "Website", description: "URL or sitemap" },
-  { icon: LinkIcon, label: "Link", description: "Online resources" },
+const uploadTabs = [
+  { id: "files", label: "Files", icon: FileText },
+  { id: "website", label: "Website", icon: Globe },
+  { id: "link", label: "Link", icon: LinkIcon },
 ];
 
 export default function Knowledge() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadTab, setUploadTab] = useState("files");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
 
   const filteredSources = sources.filter(source =>
     source.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleFilesUploaded = (files: File[]) => {
+    console.log("Files uploaded:", files);
+  };
+
+  const handleWebsiteSubmit = () => {
+    if (!websiteUrl.trim()) return;
+    toast({
+      title: "Website queued for ingestion",
+      description: `${websiteUrl} will be processed shortly.`,
+    });
+    setWebsiteUrl("");
+    setShowUploadModal(false);
+  };
+
+  const handleLinkSubmit = () => {
+    if (!linkUrl.trim()) return;
+    toast({
+      title: "Link added",
+      description: `${linkUrl} will be processed shortly.`,
+    });
+    setLinkUrl("");
+    setShowUploadModal(false);
+  };
 
   return (
     <AppLayout>
@@ -114,39 +144,144 @@ export default function Knowledge() {
           </Button>
         </motion.div>
 
-        {/* Upload Options */}
-        {showUploadModal && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass rounded-xl p-6 mb-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground">Add Knowledge Source</h3>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setShowUploadModal(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {uploadOptions.map((option) => (
-                <motion.button
-                  key={option.label}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex flex-col items-center gap-2 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+        {/* Upload Modal */}
+        <AnimatePresence>
+          {showUploadModal && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="glass rounded-xl p-6 mb-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-foreground">Add Knowledge Source</h3>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setShowUploadModal(false)}
                 >
-                  <option.icon className="w-6 h-6 text-primary" />
-                  <span className="text-sm font-medium text-foreground">{option.label}</span>
-                  <span className="text-xs text-muted-foreground">{option.description}</span>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        )}
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <Tabs value={uploadTab} onValueChange={setUploadTab}>
+                <TabsList className="mb-6 bg-secondary/50">
+                  {uploadTabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      <tab.icon className="w-4 h-4" />
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                <TabsContent value="files" className="mt-0">
+                  <FileUploadZone onFilesUploaded={handleFilesUploaded} />
+                </TabsContent>
+
+                <TabsContent value="website" className="mt-0">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/30 border border-border">
+                      <Globe className="w-10 h-10 text-primary" />
+                      <div>
+                        <h4 className="font-medium text-foreground">Ingest Website</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Crawl and ingest content from a website URL or sitemap
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="website-url">Website URL</Label>
+                      <Input
+                        id="website-url"
+                        type="url"
+                        placeholder="https://example.com"
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        className="bg-background/50"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter the root URL to crawl the entire site, or a specific page URL
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          id="crawl-subpages" 
+                          className="rounded border-border bg-background"
+                        />
+                        <Label htmlFor="crawl-subpages" className="text-sm font-normal">
+                          Crawl subpages
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          id="follow-sitemap" 
+                          className="rounded border-border bg-background"
+                        />
+                        <Label htmlFor="follow-sitemap" className="text-sm font-normal">
+                          Follow sitemap
+                        </Label>
+                      </div>
+                    </div>
+
+                    <Button 
+                      variant="glow" 
+                      onClick={handleWebsiteSubmit}
+                      disabled={!websiteUrl.trim()}
+                    >
+                      Start Ingestion
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="link" className="mt-0">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/30 border border-border">
+                      <LinkIcon className="w-10 h-10 text-primary" />
+                      <div>
+                        <h4 className="font-medium text-foreground">Add Online Resource</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Link to online documents, articles, or resources
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="resource-link">Resource URL</Label>
+                      <Input
+                        id="resource-link"
+                        type="url"
+                        placeholder="https://example.com/document.pdf"
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        className="bg-background/50"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Supports PDF, Word documents, and other online resources
+                      </p>
+                    </div>
+
+                    <Button 
+                      variant="glow" 
+                      onClick={handleLinkSubmit}
+                      disabled={!linkUrl.trim()}
+                    >
+                      Add Resource
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Stats */}
         <motion.div
