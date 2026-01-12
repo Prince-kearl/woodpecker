@@ -8,6 +8,7 @@ import Workspaces from "./pages/Workspaces";
 import CreateWorkspace from "./pages/CreateWorkspace";
 import Knowledge from "./pages/Knowledge";
 import Workspace from "./pages/Workspace";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/workspaces/new" element={<CreateWorkspace />} />
           <Route path="/knowledge" element={<Knowledge />} />
           <Route path="/workspace/:id" element={<Workspace />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
