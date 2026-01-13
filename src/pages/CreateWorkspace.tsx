@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronLeft, 
   ChevronRight, 
   Check, 
   Sparkles,
-  Palette
+  Palette,
+  Loader2
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ModeSelector } from "@/components/workspace/ModeSelector";
@@ -14,8 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-type Mode = "study" | "exam" | "retrieval" | "institutional";
+type Mode = Database["public"]["Enums"]["workspace_mode"];
+
+interface KnowledgeSource {
+  id: string;
+  name: string;
+  source_type: Database["public"]["Enums"]["source_type"];
+  chunk_count: number;
+}
 
 const steps = [
   { id: 1, title: "Basics", description: "Name and describe your workspace" },
@@ -27,16 +37,6 @@ const steps = [
 const colorOptions = [
   "#00d4aa", "#3b82f6", "#a855f7", "#ec4899", 
   "#f59e0b", "#10b981", "#6366f1", "#ef4444"
-];
-
-const mockSources = [
-  { id: "1", name: "Attention Is All You Need.pdf", type: "pdf" as const, chunks: 48 },
-  { id: "2", name: "Deep Learning Foundations.epub", type: "epub" as const, chunks: 1247 },
-  { id: "3", name: "Neural Network Architectures.pdf", type: "pdf" as const, chunks: 156 },
-  { id: "4", name: "https://pytorch.org/docs", type: "web" as const, chunks: 89 },
-  { id: "5", name: "ML Course Notes.docx", type: "docx" as const, chunks: 234 },
-  { id: "6", name: "Statistics Handbook.pdf", type: "pdf" as const, chunks: 312 },
-  { id: "7", name: "Python Data Science.epub", type: "epub" as const, chunks: 567 },
 ];
 
 const modeDescriptions = {
@@ -55,6 +55,34 @@ export default function CreateWorkspace() {
   const [color, setColor] = useState(colorOptions[0]);
   const [mode, setMode] = useState<Mode>("study");
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [sources, setSources] = useState<KnowledgeSource[]>([]);
+  const [isLoadingSources, setIsLoadingSources] = useState(true);
+
+  useEffect(() => {
+    const fetchSources = async () => {
+      setIsLoadingSources(true);
+      const { data, error } = await supabase
+        .from("knowledge_sources")
+        .select("id, name, source_type, chunk_count")
+        .eq("status", "ready")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching sources:", error);
+        toast({
+          title: "Error loading sources",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setSources(data || []);
+      }
+      setIsLoadingSources(false);
+    };
+
+    fetchSources();
+  }, [toast]);
 
   const toggleSource = (sourceId: string) => {
     setSelectedSourceIds(prev =>
@@ -71,7 +99,7 @@ export default function CreateWorkspace() {
       case 2:
         return true;
       case 3:
-        return selectedSourceIds.length > 0;
+        return true; // Sources are optional
       case 4:
         return true;
       default:
@@ -79,12 +107,69 @@ export default function CreateWorkspace() {
     }
   };
 
-  const handleCreate = () => {
-    toast({
-      title: "Workspace Created! 🎉",
-      description: `"${name}" has been created with ${selectedSourceIds.length} sources.`,
-    });
-    navigate("/workspaces");
+  const handleCreate = async () => {
+    setIsCreating(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Not authenticated",
+          description: "Please log in to create a workspace.",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+
+      // Create workspace
+      const { data: workspace, error: workspaceError } = await supabase
+        .from("workspaces")
+        .insert({
+          name: name.trim(),
+          description: description.trim() || null,
+          color,
+          mode,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (workspaceError) throw workspaceError;
+
+      // Link selected sources to workspace
+      if (selectedSourceIds.length > 0 && workspace) {
+        const workspaceSources = selectedSourceIds.map(sourceId => ({
+          workspace_id: workspace.id,
+          source_id: sourceId,
+        }));
+
+        const { error: sourcesError } = await supabase
+          .from("workspace_sources")
+          .insert(workspaceSources);
+
+        if (sourcesError) {
+          console.error("Error linking sources:", sourcesError);
+          // Continue anyway, workspace was created
+        }
+      }
+
+      toast({
+        title: "Workspace Created! 🎉",
+        description: `"${name}" has been created with ${selectedSourceIds.length} sources.`,
+      });
+      navigate("/workspaces");
+    } catch (error: any) {
+      console.error("Error creating workspace:", error);
+      toast({
+        title: "Error creating workspace",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const renderStepContent = () => {
@@ -207,12 +292,31 @@ export default function CreateWorkspace() {
               </h3>
               <p className="text-sm text-muted-foreground mb-6">
                 Choose which documents and data sources this workspace can access.
+                {sources.length === 0 && !isLoadingSources && " You can add sources later from the Knowledge page."}
               </p>
-              <SourceSelector
-                sources={mockSources}
-                selectedIds={selectedSourceIds}
-                onToggle={toggleSource}
-              />
+              {isLoadingSources ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : sources.length > 0 ? (
+                <SourceSelector
+                  sources={sources.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    type: s.source_type,
+                    chunks: s.chunk_count,
+                  }))}
+                  selectedIds={selectedSourceIds}
+                  onToggle={toggleSource}
+                />
+              ) : (
+                <div className="glass rounded-xl p-8 text-center">
+                  <p className="text-muted-foreground">No knowledge sources available yet.</p>
+                  <Link to="/knowledge" className="text-primary hover:underline text-sm mt-2 inline-block">
+                    Upload sources in Knowledge →
+                  </Link>
+                </div>
+              )}
             </div>
           </motion.div>
         );
@@ -269,17 +373,21 @@ export default function CreateWorkspace() {
                 <div className="glass rounded-xl p-4">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Knowledge Sources</p>
                   <div className="flex flex-wrap gap-2">
-                    {selectedSourceIds.map(id => {
-                      const source = mockSources.find(s => s.id === id);
-                      return source ? (
-                        <span 
-                          key={id}
-                          className="px-3 py-1.5 bg-secondary rounded-lg text-sm text-secondary-foreground"
-                        >
-                          {source.name}
-                        </span>
-                      ) : null;
-                    })}
+                    {selectedSourceIds.length > 0 ? (
+                      selectedSourceIds.map(id => {
+                        const source = sources.find(s => s.id === id);
+                        return source ? (
+                          <span 
+                            key={id}
+                            className="px-3 py-1.5 bg-secondary rounded-lg text-sm text-secondary-foreground"
+                          >
+                            {source.name}
+                          </span>
+                        ) : null;
+                      })
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No sources selected</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -397,10 +505,14 @@ export default function CreateWorkspace() {
             <Button
               variant="glow"
               onClick={handleCreate}
-              disabled={!canProceed()}
+              disabled={!canProceed() || isCreating}
             >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Create Workspace
+              {isCreating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              {isCreating ? "Creating..." : "Create Workspace"}
             </Button>
           )}
         </motion.div>
