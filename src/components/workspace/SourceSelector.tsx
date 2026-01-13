@@ -1,12 +1,15 @@
 import { motion } from "framer-motion";
-import { FileText, Globe, Table2, BookOpen, Check, Plus } from "lucide-react";
+import { FileText, Globe, Table2, BookOpen, Check, Plus, Link as LinkIcon, Presentation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { Database } from "@/integrations/supabase/types";
+
+type SourceType = Database["public"]["Enums"]["source_type"];
 
 interface Source {
   id: string;
   name: string;
-  type: "pdf" | "docx" | "web" | "spreadsheet" | "epub";
+  type: SourceType;
   chunks: number;
 }
 
@@ -16,20 +19,28 @@ interface SourceSelectorProps {
   onToggle: (id: string) => void;
 }
 
-const typeIcons = {
+const typeIcons: Record<SourceType, React.ComponentType<{ className?: string }>> = {
   pdf: FileText,
   docx: FileText,
+  txt: FileText,
   web: Globe,
-  spreadsheet: Table2,
+  csv: Table2,
+  xlsx: Table2,
   epub: BookOpen,
+  pptx: Presentation,
+  link: LinkIcon,
 };
 
-const typeColors = {
+const typeColors: Record<SourceType, string> = {
   pdf: "text-destructive",
   docx: "text-info",
+  txt: "text-muted-foreground",
   web: "text-success",
-  spreadsheet: "text-warning",
+  csv: "text-warning",
+  xlsx: "text-warning",
   epub: "text-accent",
+  pptx: "text-orange-500",
+  link: "text-primary",
 };
 
 export function SourceSelector({ sources, selectedIds, onToggle }: SourceSelectorProps) {
