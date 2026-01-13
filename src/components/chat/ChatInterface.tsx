@@ -1,23 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Paperclip, Sparkles, BookOpen, FileText, ExternalLink } from "lucide-react";
+import { Send, Paperclip, Sparkles, BookOpen, FileText, ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  sources?: Array<{
-    title: string;
-    excerpt: string;
-    page?: number;
-  }>;
-}
+import { useChat } from "@/hooks/useChat";
 
 interface ChatInterfaceProps {
+  workspaceId?: string;
   workspaceName: string;
   mode: "study" | "exam" | "retrieval" | "institutional";
+  sources?: Array<{ name: string; content?: string }>;
 }
 
 const modeConfig = {
@@ -47,52 +39,44 @@ const modeConfig = {
   },
 };
 
-const sampleMessages: Message[] = [
-  {
-    id: "1",
-    role: "user",
-    content: "What are the key differences between transformers and RNNs for sequence modeling?",
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content: `Based on your knowledge sources, here are the key differences between Transformers and RNNs:
-
-**1. Attention Mechanism**
-Transformers use self-attention to process all positions simultaneously, while RNNs process sequences step-by-step. This allows transformers to capture long-range dependencies more effectively.
-
-**2. Parallelization**
-Transformers can be fully parallelized during training since all positions are computed at once. RNNs must process tokens sequentially, making them slower to train.
-
-**3. Memory & Context**
-RNNs have a fixed hidden state that acts as memory, which can lead to vanishing gradients over long sequences. Transformers attend to all positions directly, though they're limited by context window size.
-
-**4. Computational Complexity**
-Self-attention has O(n²) complexity with sequence length, while RNNs are O(n). However, the parallelization benefits often outweigh this for modern hardware.`,
-    sources: [
-      { title: "Attention Is All You Need", excerpt: "We propose a new simple network architecture, the Transformer, based solely on attention mechanisms...", page: 1 },
-      { title: "Deep Learning Foundations", excerpt: "Recurrent neural networks process sequences by maintaining a hidden state that is updated at each timestep...", page: 145 },
-    ],
-  },
-];
-
-export function ChatInterface({ workspaceName, mode }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>(sampleMessages);
+export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const { messages, isLoading, sendMessage, clearMessages } = useChat({
+    workspaceId,
+    mode,
+    sources,
+  });
+
   const config = modeConfig[mode];
   const ModeIcon = config.icon;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input,
-    };
-    setMessages([...messages, newMessage]);
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [input]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    
+    const message = input;
     setInput("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+    
+    await sendMessage(message);
   };
 
   return (
@@ -111,14 +95,47 @@ export function ChatInterface({ workspaceName, mode }: ChatInterfaceProps) {
             <p className="text-xs" style={{ color: config.color }}>{config.label}</p>
           </div>
         </div>
+        {messages.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearMessages}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-6">
-        <AnimatePresence>
+        {messages.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center h-full text-center"
+          >
+            <div 
+              className="p-4 rounded-2xl mb-4"
+              style={{ backgroundColor: `${config.color}15` }}
+            >
+              <ModeIcon className="w-10 h-10" style={{ color: config.color }} />
+            </div>
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              Start a conversation
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-md">
+              {config.placeholder}
+            </p>
+          </motion.div>
+        )}
+
+        <AnimatePresence mode="popLayout">
           {messages.map((message) => (
             <motion.div
               key={message.id}
+              layout
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -143,9 +160,16 @@ export function ChatInterface({ workspaceName, mode }: ChatInterfaceProps) {
                     ? "bg-primary text-primary-foreground ml-auto" 
                     : "glass"
                 )}>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {message.content}
-                  </p>
+                  {message.content ? (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {message.content}
+                    </p>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Thinking...</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Sources */}
@@ -193,6 +217,20 @@ export function ChatInterface({ workspaceName, mode }: ChatInterfaceProps) {
             </motion.div>
           ))}
         </AnimatePresence>
+
+        {/* Loading indicator */}
+        {isLoading && messages.length > 0 && messages[messages.length - 1]?.content && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center gap-2 text-muted-foreground pl-12"
+          >
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">AI is thinking...</span>
+          </motion.div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
@@ -204,11 +242,13 @@ export function ChatInterface({ workspaceName, mode }: ChatInterfaceProps) {
           
           <div className="flex-1 glass rounded-xl p-1">
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={config.placeholder}
               rows={1}
-              className="w-full bg-transparent border-0 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none"
+              disabled={isLoading}
+              className="w-full bg-transparent border-0 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none disabled:opacity-50"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -221,10 +261,14 @@ export function ChatInterface({ workspaceName, mode }: ChatInterfaceProps) {
           <Button 
             type="submit" 
             size="icon" 
-            disabled={!input.trim()}
+            disabled={!input.trim() || isLoading}
             className="gradient-primary glow flex-shrink-0"
           >
-            <Send className="w-4 h-4" />
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </Button>
         </form>
       </div>
