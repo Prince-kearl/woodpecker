@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 interface WorkspaceCardProps {
   id: string;
   name: string;
-  description: string;
-  sourceCount: number;
-  queryCount: number;
+  description?: string | null;
+  sourceCount?: number;
+  queryCount?: number;
   mode: "study" | "exam" | "retrieval" | "institutional";
   color: string;
   delay?: number;
@@ -25,8 +25,8 @@ export function WorkspaceCard({
   id, 
   name, 
   description, 
-  sourceCount, 
-  queryCount, 
+  sourceCount = 0, 
+  queryCount = 0, 
   mode,
   color,
   delay = 0 
@@ -44,7 +44,7 @@ export function WorkspaceCard({
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-1">{name}</h3>
-            <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
+            <p className="text-sm text-muted-foreground line-clamp-2">{description || "No description"}</p>
           </div>
           <span 
             className="px-3 py-1 rounded-full text-xs font-medium"

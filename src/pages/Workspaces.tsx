@@ -1,67 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Search, Filter, Grid, List } from "lucide-react";
+import { Plus, Search, Filter, Grid, List, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { WorkspaceCard } from "@/components/dashboard/WorkspaceCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-const allWorkspaces = [
-  {
-    id: "1",
-    name: "ML Research Papers",
-    description: "Collection of machine learning papers including transformers, neural networks, and deep learning fundamentals.",
-    sourceCount: 12,
-    queryCount: 156,
-    mode: "study" as const,
-    color: "#00d4aa",
-  },
-  {
-    id: "2",
-    name: "Company Policies",
-    description: "HR policies, compliance documents, and employee handbooks for quick reference.",
-    sourceCount: 8,
-    queryCount: 89,
-    mode: "institutional" as const,
-    color: "#ec4899",
-  },
-  {
-    id: "3",
-    name: "CS201 Exam Prep",
-    description: "Data structures and algorithms course materials for final exam preparation.",
-    sourceCount: 6,
-    queryCount: 234,
-    mode: "exam" as const,
-    color: "#a855f7",
-  },
-  {
-    id: "4",
-    name: "Legal Documents",
-    description: "Contract templates, legal agreements, and regulatory compliance documentation.",
-    sourceCount: 15,
-    queryCount: 67,
-    mode: "retrieval" as const,
-    color: "#f59e0b",
-  },
-  {
-    id: "5",
-    name: "Product Documentation",
-    description: "API references, user guides, and technical documentation for our products.",
-    sourceCount: 22,
-    queryCount: 312,
-    mode: "retrieval" as const,
-    color: "#3b82f6",
-  },
-];
+type Workspace = Database["public"]["Tables"]["workspaces"]["Row"];
 
 export default function Workspaces() {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredWorkspaces = allWorkspaces.filter(ws => 
-    ws.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ws.description.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    const fetchWorkspaces = async () => {
+      const { data, error } = await supabase
+        .from("workspaces")
+        .select("*")
+        .order("updated_at", { ascending: false });
+
+      if (!error && data) {
+        setWorkspaces(data);
+      }
+      setLoading(false);
+    };
+
+    fetchWorkspaces();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel("workspaces-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workspaces",
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setWorkspaces((prev) => [payload.new as Workspace, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setWorkspaces((prev) =>
+              prev.map((ws) =>
+                ws.id === (payload.new as Workspace).id
+                  ? (payload.new as Workspace)
+                  : ws
+              )
+            );
+          } else if (payload.eventType === "DELETE") {
+            setWorkspaces((prev) =>
+              prev.filter((ws) => ws.id !== (payload.old as Workspace).id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const filteredWorkspaces = workspaces.filter(
+    (ws) =>
+      ws.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (ws.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
   return (
@@ -127,16 +136,30 @@ export default function Workspaces() {
         </motion.div>
 
         {/* Workspace Grid */}
-        <div className={viewMode === "grid" 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          : "flex flex-col gap-4"
-        }>
-          {filteredWorkspaces.map((workspace, index) => (
-            <WorkspaceCard key={workspace.id} {...workspace} delay={0.1 + index * 0.05} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className={viewMode === "grid" 
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            : "flex flex-col gap-4"
+          }>
+            {filteredWorkspaces.map((workspace, index) => (
+              <WorkspaceCard 
+                key={workspace.id} 
+                id={workspace.id}
+                name={workspace.name}
+                description={workspace.description}
+                mode={workspace.mode}
+                color={workspace.color}
+                delay={0.1 + index * 0.05} 
+              />
+            ))}
+          </div>
+        )}
 
-        {filteredWorkspaces.length === 0 && (
+        {!loading && filteredWorkspaces.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
