@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, 
@@ -6,10 +6,9 @@ import {
   Filter, 
   FileText, 
   Globe, 
-  Table2, 
-  BookOpen,
   Link as LinkIcon,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SourceCard } from "@/components/knowledge/SourceCard";
@@ -19,63 +18,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-const sources = [
-  {
-    id: "1",
-    name: "Attention Is All You Need.pdf",
-    type: "pdf" as const,
-    status: "ready" as const,
-    chunks: 48,
-    lastUpdated: "2 days ago",
-    workspaces: ["ML Research Papers"],
-  },
-  {
-    id: "2",
-    name: "Employee Handbook 2024.docx",
-    type: "docx" as const,
-    status: "ready" as const,
-    chunks: 156,
-    lastUpdated: "1 week ago",
-    workspaces: ["Company Policies", "HR Documentation"],
-  },
-  {
-    id: "3",
-    name: "https://react.dev/learn",
-    type: "web" as const,
-    status: "processing" as const,
-    chunks: 0,
-    lastUpdated: "Processing...",
-    workspaces: [],
-  },
-  {
-    id: "4",
-    name: "Q4 Financial Report.xlsx",
-    type: "spreadsheet" as const,
-    status: "ready" as const,
-    chunks: 89,
-    lastUpdated: "3 days ago",
-    workspaces: ["Financial Analysis"],
-  },
-  {
-    id: "5",
-    name: "Deep Learning - Ian Goodfellow.epub",
-    type: "epub" as const,
-    status: "ready" as const,
-    chunks: 1247,
-    lastUpdated: "2 weeks ago",
-    workspaces: ["ML Research Papers", "CS201 Exam Prep"],
-  },
-  {
-    id: "6",
-    name: "API Documentation v3.pdf",
-    type: "pdf" as const,
-    status: "error" as const,
-    chunks: 0,
-    lastUpdated: "Failed",
-    workspaces: [],
-  },
-];
+type KnowledgeSource = Database["public"]["Tables"]["knowledge_sources"]["Row"];
 
 const uploadTabs = [
   { id: "files", label: "Files", icon: FileText },
@@ -90,13 +36,66 @@ export default function Knowledge() {
   const [uploadTab, setUploadTab] = useState("files");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [sources, setSources] = useState<KnowledgeSource[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSources = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("knowledge_sources")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setSources(data);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchSources();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel("knowledge-sources-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "knowledge_sources",
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setSources((prev) => [payload.new as KnowledgeSource, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setSources((prev) =>
+              prev.map((s) =>
+                s.id === (payload.new as KnowledgeSource).id
+                  ? (payload.new as KnowledgeSource)
+                  : s
+              )
+            );
+          } else if (payload.eventType === "DELETE") {
+            setSources((prev) =>
+              prev.filter((s) => s.id !== (payload.old as KnowledgeSource).id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchSources]);
 
   const filteredSources = sources.filter(source =>
     source.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleFilesUploaded = (files: File[]) => {
-    console.log("Files uploaded:", files);
+  const handleFilesUploaded = (sourceIds: string[]) => {
+    console.log("Sources created:", sourceIds);
+    setShowUploadModal(false);
   };
 
   const handleWebsiteSubmit = () => {
@@ -118,6 +117,13 @@ export default function Knowledge() {
     setLinkUrl("");
     setShowUploadModal(false);
   };
+
+  const stats = [
+    { label: "Total Sources", value: sources.length },
+    { label: "Ready", value: sources.filter(s => s.status === "completed").length },
+    { label: "Processing", value: sources.filter(s => s.status === "processing" || s.status === "pending").length },
+    { label: "Total Chunks", value: sources.reduce((sum, s) => sum + s.chunk_count, 0).toLocaleString() },
+  ];
 
   return (
     <AppLayout>
@@ -148,137 +154,139 @@ export default function Knowledge() {
         <AnimatePresence>
           {showUploadModal && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="glass rounded-xl p-6 mb-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+              onClick={() => setShowUploadModal(false)}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-foreground">Add Knowledge Source</h3>
-                <Button 
-                  variant="ghost" 
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-2xl glass rounded-2xl p-6 relative"
+              >
+                <Button
+                  variant="ghost"
                   size="icon"
+                  className="absolute top-4 right-4"
                   onClick={() => setShowUploadModal(false)}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </Button>
-              </div>
 
-              <Tabs value={uploadTab} onValueChange={setUploadTab}>
-                <TabsList className="mb-6 bg-secondary/50">
-                  {uploadTabs.map((tab) => (
-                    <TabsTrigger
-                      key={tab.id}
-                      value={tab.id}
-                      className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    >
-                      <tab.icon className="w-4 h-4" />
-                      {tab.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+                <h2 className="text-2xl font-bold text-foreground mb-6">Add Knowledge</h2>
 
-                <TabsContent value="files" className="mt-0">
-                  <FileUploadZone onFilesUploaded={handleFilesUploaded} />
-                </TabsContent>
+                <Tabs value={uploadTab} onValueChange={setUploadTab}>
+                  <TabsList className="grid grid-cols-3 mb-6">
+                    {uploadTabs.map((tab) => (
+                      <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2">
+                        <tab.icon className="w-4 h-4" />
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
 
-                <TabsContent value="website" className="mt-0">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/30 border border-border">
-                      <Globe className="w-10 h-10 text-primary" />
-                      <div>
-                        <h4 className="font-medium text-foreground">Ingest Website</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Crawl and ingest content from a website URL or sitemap
+                  <TabsContent value="files" className="mt-0">
+                    <FileUploadZone onFilesUploaded={handleFilesUploaded} />
+                  </TabsContent>
+
+                  <TabsContent value="website" className="mt-0">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/30 border border-border">
+                        <Globe className="w-10 h-10 text-primary" />
+                        <div>
+                          <h4 className="font-medium text-foreground">Ingest Website</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Crawl and ingest content from a website URL or sitemap
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="website-url">Website URL</Label>
+                        <Input
+                          id="website-url"
+                          type="url"
+                          placeholder="https://example.com"
+                          value={websiteUrl}
+                          onChange={(e) => setWebsiteUrl(e.target.value)}
+                          className="bg-background/50"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="crawl-subpages"
+                            className="rounded border-border"
+                          />
+                          <Label htmlFor="crawl-subpages" className="text-sm font-normal">
+                            Crawl subpages
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="follow-sitemap"
+                            className="rounded border-border"
+                          />
+                          <Label htmlFor="follow-sitemap" className="text-sm font-normal">
+                            Follow sitemap
+                          </Label>
+                        </div>
+                      </div>
+
+                      <Button 
+                        variant="glow" 
+                        onClick={handleWebsiteSubmit}
+                        disabled={!websiteUrl.trim()}
+                      >
+                        Start Ingestion
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="link" className="mt-0">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/30 border border-border">
+                        <LinkIcon className="w-10 h-10 text-primary" />
+                        <div>
+                          <h4 className="font-medium text-foreground">Add Online Resource</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Link to online documents, articles, or resources
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="resource-link">Resource URL</Label>
+                        <Input
+                          id="resource-link"
+                          type="url"
+                          placeholder="https://example.com/document.pdf"
+                          value={linkUrl}
+                          onChange={(e) => setLinkUrl(e.target.value)}
+                          className="bg-background/50"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Supports PDF, Word documents, and other online resources
                         </p>
                       </div>
+
+                      <Button 
+                        variant="glow" 
+                        onClick={handleLinkSubmit}
+                        disabled={!linkUrl.trim()}
+                      >
+                        Add Resource
+                      </Button>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="website-url">Website URL</Label>
-                      <Input
-                        id="website-url"
-                        type="url"
-                        placeholder="https://example.com"
-                        value={websiteUrl}
-                        onChange={(e) => setWebsiteUrl(e.target.value)}
-                        className="bg-background/50"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Enter the root URL to crawl the entire site, or a specific page URL
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <input 
-                          type="checkbox" 
-                          id="crawl-subpages" 
-                          className="rounded border-border bg-background"
-                        />
-                        <Label htmlFor="crawl-subpages" className="text-sm font-normal">
-                          Crawl subpages
-                        </Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input 
-                          type="checkbox" 
-                          id="follow-sitemap" 
-                          className="rounded border-border bg-background"
-                        />
-                        <Label htmlFor="follow-sitemap" className="text-sm font-normal">
-                          Follow sitemap
-                        </Label>
-                      </div>
-                    </div>
-
-                    <Button 
-                      variant="glow" 
-                      onClick={handleWebsiteSubmit}
-                      disabled={!websiteUrl.trim()}
-                    >
-                      Start Ingestion
-                    </Button>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="link" className="mt-0">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/30 border border-border">
-                      <LinkIcon className="w-10 h-10 text-primary" />
-                      <div>
-                        <h4 className="font-medium text-foreground">Add Online Resource</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Link to online documents, articles, or resources
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="resource-link">Resource URL</Label>
-                      <Input
-                        id="resource-link"
-                        type="url"
-                        placeholder="https://example.com/document.pdf"
-                        value={linkUrl}
-                        onChange={(e) => setLinkUrl(e.target.value)}
-                        className="bg-background/50"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Supports PDF, Word documents, and other online resources
-                      </p>
-                    </div>
-
-                    <Button 
-                      variant="glow" 
-                      onClick={handleLinkSubmit}
-                      disabled={!linkUrl.trim()}
-                    >
-                      Add Resource
-                    </Button>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -290,12 +298,7 @@ export default function Knowledge() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
         >
-          {[
-            { label: "Total Sources", value: sources.length },
-            { label: "Ready", value: sources.filter(s => s.status === "ready").length },
-            { label: "Processing", value: sources.filter(s => s.status === "processing").length },
-            { label: "Total Chunks", value: sources.reduce((sum, s) => sum + s.chunks, 0).toLocaleString() },
-          ].map((stat) => (
+          {stats.map((stat) => (
             <div key={stat.label} className="glass rounded-lg p-4">
               <p className="text-2xl font-bold text-foreground">{stat.value}</p>
               <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -325,19 +328,38 @@ export default function Knowledge() {
         </motion.div>
 
         {/* Sources List */}
-        <div className="grid gap-3">
-          {filteredSources.map((source, index) => (
-            <SourceCard key={source.id} {...source} delay={0.2 + index * 0.03} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {filteredSources.map((source, index) => (
+              <SourceCard 
+                key={source.id} 
+                id={source.id}
+                name={source.name}
+                sourceType={source.source_type}
+                status={source.status}
+                chunks={source.chunk_count}
+                updatedAt={source.updated_at}
+                delay={0.2 + index * 0.03} 
+              />
+            ))}
+          </div>
+        )}
 
-        {filteredSources.length === 0 && (
+        {!loading && filteredSources.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center py-12"
           >
-            <p className="text-muted-foreground">No sources found matching your search.</p>
+            <p className="text-muted-foreground">
+              {sources.length === 0 
+                ? "No sources yet. Upload some documents to get started." 
+                : "No sources found matching your search."}
+            </p>
           </motion.div>
         )}
       </div>

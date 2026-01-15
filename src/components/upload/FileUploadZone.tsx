@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, 
@@ -14,17 +14,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-
-interface UploadedFile {
-  id: string;
-  file: File;
-  progress: number;
-  status: "uploading" | "processing" | "complete" | "error";
-  error?: string;
-}
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 interface FileUploadZoneProps {
-  onFilesUploaded?: (files: File[]) => void;
+  onFilesUploaded?: (sourceIds: string[]) => void;
   acceptedTypes?: string[];
   maxFileSize?: number; // in MB
   maxFiles?: number;
@@ -64,9 +57,19 @@ export function FileUploadZone({
   maxFiles = 10,
   className,
 }: FileUploadZoneProps) {
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { 
+    uploadedFiles, 
+    isUploading, 
+    processFiles, 
+    removeFile, 
+    clearFiles 
+  } = useFileUpload({
+    maxFileSize,
+    maxFiles,
+    onComplete: onFilesUploaded,
+  });
 
   const getFileExtension = (filename: string) => {
     return filename.split(".").pop()?.toLowerCase() || "";
@@ -85,129 +88,32 @@ export function FileUploadZone({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const simulateUpload = useCallback((file: UploadedFile) => {
-    // Simulate upload progress
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.random() * 15;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-        
-        // Simulate processing phase
-        setUploadedFiles((prev) =>
-          prev.map((f) =>
-            f.id === file.id ? { ...f, progress: 100, status: "processing" } : f
-          )
-        );
-
-        // Simulate processing completion
-        setTimeout(() => {
-          setUploadedFiles((prev) =>
-            prev.map((f) =>
-              f.id === file.id ? { ...f, status: "complete" } : f
-            )
-          );
-        }, 1500 + Math.random() * 1000);
-      } else {
-        setUploadedFiles((prev) =>
-          prev.map((f) =>
-            f.id === file.id ? { ...f, progress } : f
-          )
-        );
-      }
-    }, 200);
-  }, []);
-
-  const processFiles = useCallback(
-    (files: FileList | File[]) => {
-      const fileArray = Array.from(files);
-      const validFiles: UploadedFile[] = [];
-
-      for (const file of fileArray) {
-        // Check max files
-        if (uploadedFiles.length + validFiles.length >= maxFiles) {
-          break;
-        }
-
-        // Check file type
-        const ext = "." + getFileExtension(file.name);
-        if (!acceptedTypes.includes(ext)) {
-          continue;
-        }
-
-        // Check file size
-        if (file.size > maxFileSize * 1024 * 1024) {
-          validFiles.push({
-            id: crypto.randomUUID(),
-            file,
-            progress: 0,
-            status: "error",
-            error: `File exceeds ${maxFileSize}MB limit`,
-          });
-          continue;
-        }
-
-        validFiles.push({
-          id: crypto.randomUUID(),
-          file,
-          progress: 0,
-          status: "uploading",
-        });
-      }
-
-      setUploadedFiles((prev) => [...prev, ...validFiles]);
-      
-      // Start upload simulation for valid files
-      validFiles
-        .filter((f) => f.status === "uploading")
-        .forEach((f) => simulateUpload(f));
-
-      // Callback with files
-      if (onFilesUploaded) {
-        onFilesUploaded(validFiles.filter((f) => f.status !== "error").map((f) => f.file));
-      }
-    },
-    [uploadedFiles, maxFiles, acceptedTypes, maxFileSize, simulateUpload, onFilesUploaded]
-  );
-
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
   }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      setIsDragging(false);
       
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        processFiles(e.dataTransfer.files);
+        processFiles(e.dataTransfer.files, acceptedTypes);
       }
     },
-    [processFiles]
+    [processFiles, acceptedTypes]
   );
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files.length > 0) {
-        processFiles(e.target.files);
+        processFiles(e.target.files, acceptedTypes);
+        e.target.value = "";
       }
     },
-    [processFiles]
+    [processFiles, acceptedTypes]
   );
-
-  const removeFile = useCallback((id: string) => {
-    setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
-  }, []);
 
   const openFileDialog = () => {
     fileInputRef.current?.click();
@@ -218,17 +124,12 @@ export function FileUploadZone({
       {/* Drop Zone */}
       <motion.div
         onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={openFileDialog}
-        animate={{
-          scale: isDragging ? 1.02 : 1,
-          borderColor: isDragging ? "hsl(var(--primary))" : "hsl(var(--border))",
-        }}
+        whileHover={{ scale: 1.01 }}
         className={cn(
           "relative cursor-pointer rounded-xl border-2 border-dashed p-8 transition-colors",
-          "bg-secondary/30 hover:bg-secondary/50",
-          isDragging && "bg-primary/10 border-primary"
+          "bg-secondary/30 hover:bg-secondary/50 hover:border-primary/50"
         )}
       >
         <input
@@ -242,23 +143,13 @@ export function FileUploadZone({
         
         <div className="flex flex-col items-center justify-center text-center">
           <motion.div
-            animate={{
-              y: isDragging ? -5 : 0,
-              scale: isDragging ? 1.1 : 1,
-            }}
-            className={cn(
-              "mb-4 rounded-full p-4",
-              isDragging ? "bg-primary/20" : "bg-secondary"
-            )}
+            className="mb-4 rounded-full p-4 bg-secondary"
           >
-            <Upload className={cn(
-              "w-8 h-8",
-              isDragging ? "text-primary" : "text-muted-foreground"
-            )} />
+            <Upload className="w-8 h-8 text-muted-foreground" />
           </motion.div>
           
           <h3 className="text-lg font-semibold text-foreground mb-2">
-            {isDragging ? "Drop files here" : "Drag & drop files"}
+            Drag & drop files
           </h3>
           <p className="text-sm text-muted-foreground mb-4">
             or click to browse from your computer
@@ -339,8 +230,9 @@ export function FileUploadZone({
                         </span>
                         
                         {file.status === "uploading" && (
-                          <span className="text-xs text-primary">
-                            Uploading... {Math.round(file.progress)}%
+                          <span className="text-xs text-primary flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Uploading...
                           </span>
                         )}
                         {file.status === "processing" && (
@@ -377,6 +269,7 @@ export function FileUploadZone({
                         e.stopPropagation();
                         removeFile(file.id);
                       }}
+                      disabled={file.status === "uploading" || file.status === "processing"}
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -398,8 +291,9 @@ export function FileUploadZone({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setUploadedFiles([])}
+            onClick={clearFiles}
             className="text-muted-foreground"
+            disabled={isUploading}
           >
             Clear all
           </Button>
@@ -408,13 +302,6 @@ export function FileUploadZone({
               {uploadedFiles.filter((f) => f.status === "complete").length} of{" "}
               {uploadedFiles.length} complete
             </span>
-            <Button
-              variant="glow"
-              size="sm"
-              disabled={uploadedFiles.some((f) => f.status === "uploading" || f.status === "processing")}
-            >
-              Add to Library
-            </Button>
           </div>
         </motion.div>
       )}
