@@ -115,6 +115,15 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
         throw new Error(dbError.message);
       }
 
+      // Trigger document processing in background
+      supabase.functions.invoke("process-document", {
+        body: { sourceId: sourceData.id },
+      }).then(({ error }) => {
+        if (error) {
+          console.error("Document processing error:", error);
+        }
+      });
+
       // Mark as complete
       setUploadedFiles((prev) =>
         prev.map((f) =>
