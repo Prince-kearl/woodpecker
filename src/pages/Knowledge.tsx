@@ -120,7 +120,7 @@ export default function Knowledge() {
 
   const stats = [
     { label: "Total Sources", value: sources.length },
-    { label: "Ready", value: sources.filter(s => s.status === "completed").length },
+    { label: "Ready", value: sources.filter(s => s.status === "ready").length },
     { label: "Processing", value: sources.filter(s => s.status === "processing" || s.status === "pending").length },
     { label: "Total Chunks", value: sources.reduce((sum, s) => sum + s.chunk_count, 0).toLocaleString() },
   ];

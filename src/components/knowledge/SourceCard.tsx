@@ -37,7 +37,7 @@ const typeIcons: Record<SourceType, typeof FileText> = {
   pptx: FileText,
   epub: BookOpen,
   web: Globe,
-  url: Globe,
+  link: Globe,
 };
 
 const typeColors: Record<SourceType, string> = {
@@ -49,14 +49,14 @@ const typeColors: Record<SourceType, string> = {
   pptx: "text-orange-500 bg-orange-500/10",
   epub: "text-purple-500 bg-purple-500/10",
   web: "text-primary bg-primary/10",
-  url: "text-primary bg-primary/10",
+  link: "text-primary bg-primary/10",
 };
 
 const statusConfig: Record<ProcessingStatus, { icon: typeof Check; color: string; label: string }> = {
   pending: { icon: Clock, color: "text-muted-foreground", label: "Pending" },
   processing: { icon: Loader2, color: "text-amber-500", label: "Processing" },
-  completed: { icon: Check, color: "text-green-500", label: "Ready" },
-  failed: { icon: AlertCircle, color: "text-destructive", label: "Error" },
+  ready: { icon: Check, color: "text-green-500", label: "Ready" },
+  error: { icon: AlertCircle, color: "text-destructive", label: "Error" },
 };
 
 export function SourceCard({
