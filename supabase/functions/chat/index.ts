@@ -37,6 +37,81 @@ const modePrompts: Record<string, string> = {
 - When in doubt, recommend consulting official sources`,
 };
 
+interface RetrievedChunk {
+  id: string;
+  source_id: string;
+  content: string;
+  chunk_index: number;
+  rank: number;
+  source_name: string;
+}
+
+async function retrieveRelevantChunks(
+  supabase: any,
+  query: string,
+  workspaceId: string,
+  maxResults: number = 5
+): Promise<RetrievedChunk[]> {
+  console.log(`Retrieving chunks for query: "${query}" in workspace: ${workspaceId}`);
+  
+  // Get source IDs linked to this workspace
+  const { data: workspaceSources, error: wsError } = await supabase
+    .from("workspace_sources")
+    .select("source_id")
+    .eq("workspace_id", workspaceId)
+    .eq("is_enabled", true);
+
+  if (wsError || !workspaceSources?.length) {
+    console.log("No workspace sources found:", wsError?.message);
+    return [];
+  }
+
+  const sourceIds = workspaceSources.map((ws: { source_id: string }) => ws.source_id);
+  console.log(`Found ${sourceIds.length} enabled sources`);
+
+  // Use the search_chunks function for full-text search
+  const { data: chunks, error: searchError } = await supabase
+    .rpc("search_chunks", {
+      search_query: query,
+      source_ids: sourceIds,
+      max_results: maxResults,
+    });
+
+  if (searchError) {
+    console.error("Search error:", searchError);
+    return [];
+  }
+
+  console.log(`Found ${chunks?.length || 0} relevant chunks`);
+  return chunks || [];
+}
+
+function buildContextFromChunks(chunks: RetrievedChunk[]): string {
+  if (!chunks.length) return "";
+
+  let context = "\n\n## Retrieved Knowledge Context:\n";
+  
+  // Group chunks by source
+  const bySource: Record<string, RetrievedChunk[]> = {};
+  for (const chunk of chunks) {
+    if (!bySource[chunk.source_name]) {
+      bySource[chunk.source_name] = [];
+    }
+    bySource[chunk.source_name].push(chunk);
+  }
+
+  for (const [sourceName, sourceChunks] of Object.entries(bySource)) {
+    context += `\n### Source: ${sourceName}\n`;
+    for (const chunk of sourceChunks) {
+      context += `\n[Chunk ${chunk.chunk_index + 1}]:\n${chunk.content}\n`;
+    }
+  }
+
+  context += `\n---\nUse the above knowledge context to inform your response. Always cite sources by name when referencing information from them. If the user's question cannot be answered from the provided context, acknowledge this and provide general guidance.`;
+
+  return context;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -46,23 +121,27 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    // Create Supabase client with user auth for RLS
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader || "" } },
     });
+
+    // Create admin client for search function
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Validate user if auth header provided
     let userId: string | null = null;
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabase.auth.getUser(token);
+      const { data: claimsData, error: claimsError } = await supabaseUser.auth.getUser(token);
       if (!claimsError && claimsData?.user) {
         userId = claimsData.user.id;
       }
     }
 
-    const { messages, workspaceId, mode = "study", sources = [] } = await req.json();
+    const { messages, workspaceId, mode = "study" } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -76,30 +155,39 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build context from sources if provided
-    let sourceContext = "";
-    if (sources && sources.length > 0) {
-      sourceContext = "\n\n## Available Knowledge Sources:\n";
-      sources.forEach((source: { name: string; content?: string }, idx: number) => {
-        sourceContext += `\n### Source ${idx + 1}: ${source.name}\n`;
-        if (source.content) {
-          sourceContext += `${source.content}\n`;
-        }
-      });
-      sourceContext += "\n\nWhen answering, reference these sources by name and provide relevant excerpts as citations.";
+    // Get the last user message for retrieval
+    const lastUserMessage = [...messages].reverse().find(m => m.role === "user");
+    const userQuery = lastUserMessage?.content || "";
+
+    // Retrieve relevant chunks if workspace is provided
+    let retrievedContext = "";
+    let retrievedChunks: RetrievedChunk[] = [];
+    
+    if (workspaceId && userQuery) {
+      console.log("Retrieving context for workspace:", workspaceId);
+      retrievedChunks = await retrieveRelevantChunks(
+        supabaseAdmin,
+        userQuery,
+        workspaceId,
+        5
+      );
+      retrievedContext = buildContextFromChunks(retrievedChunks);
+      console.log(`Built context with ${retrievedChunks.length} chunks`);
     }
 
     const systemPrompt = `${modePrompts[mode] || modePrompts.study}
 
 You are a RAG (Retrieval-Augmented Generation) assistant for a knowledge workspace.
-${sourceContext}
+${retrievedContext}
 
 Guidelines:
 - Always be helpful, accurate, and cite sources when available
 - Format responses using Markdown for better readability
-- If you reference a source, format citations as: [Source Name, page X]
+- If you reference a source, format citations as: [Source: Source Name]
 - If asked about something not in your knowledge sources, acknowledge the limitation
 - Keep responses focused and relevant to the user's query`;
+
+    console.log("Sending request to AI with context length:", retrievedContext.length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -138,9 +226,19 @@ Guidelines:
       );
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-    });
+    // Return the streaming response with source metadata in headers
+    const responseHeaders = {
+      ...corsHeaders,
+      "Content-Type": "text/event-stream",
+      "X-Retrieved-Sources": JSON.stringify(
+        retrievedChunks.map(c => ({
+          name: c.source_name,
+          chunkIndex: c.chunk_index,
+        }))
+      ),
+    };
+
+    return new Response(response.body, { headers: responseHeaders });
   } catch (error) {
     console.error("Chat error:", error);
     return new Response(

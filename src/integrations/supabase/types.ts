@@ -57,6 +57,7 @@ export type Database = {
           embedding_id: string | null
           id: string
           metadata: Json | null
+          search_vector: unknown
           source_id: string
           token_count: number | null
         }
@@ -67,6 +68,7 @@ export type Database = {
           embedding_id?: string | null
           id?: string
           metadata?: Json | null
+          search_vector?: unknown
           source_id: string
           token_count?: number | null
         }
@@ -77,6 +79,7 @@ export type Database = {
           embedding_id?: string | null
           id?: string
           metadata?: Json | null
+          search_vector?: unknown
           source_id?: string
           token_count?: number | null
         }
@@ -325,6 +328,21 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      search_chunks: {
+        Args: {
+          max_results?: number
+          search_query: string
+          source_ids: string[]
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          id: string
+          rank: number
+          source_id: string
+          source_name: string
+        }[]
       }
     }
     Enums: {
