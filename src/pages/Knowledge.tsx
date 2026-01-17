@@ -38,6 +38,9 @@ export default function Knowledge() {
   const [linkUrl, setLinkUrl] = useState("");
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [crawlSubpages, setCrawlSubpages] = useState(false);
+  const [followSitemap, setFollowSitemap] = useState(false);
+  const [isIngesting, setIsIngesting] = useState(false);
 
   const fetchSources = useCallback(async () => {
     const { data, error } = await supabase
@@ -98,24 +101,88 @@ export default function Knowledge() {
     setShowUploadModal(false);
   };
 
-  const handleWebsiteSubmit = () => {
+  const handleWebsiteSubmit = async () => {
     if (!websiteUrl.trim()) return;
-    toast({
-      title: "Website queued for ingestion",
-      description: `${websiteUrl} will be processed shortly.`,
-    });
-    setWebsiteUrl("");
-    setShowUploadModal(false);
+    
+    setIsIngesting(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("ingest-website", {
+        body: {
+          url: websiteUrl,
+          crawlSubpages,
+          followSitemap,
+          userId: null, // Will use service role
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.success) {
+        toast({
+          title: "Website ingested successfully",
+          description: `Created ${data.chunkCount} chunks from ${data.pageCount} page(s).`,
+        });
+      } else {
+        throw new Error(data?.error || "Ingestion failed");
+      }
+    } catch (error) {
+      console.error("Website ingestion error:", error);
+      toast({
+        title: "Ingestion failed",
+        description: error instanceof Error ? error.message : "Failed to ingest website",
+        variant: "destructive",
+      });
+    } finally {
+      setIsIngesting(false);
+      setWebsiteUrl("");
+      setCrawlSubpages(false);
+      setFollowSitemap(false);
+      setShowUploadModal(false);
+    }
   };
 
-  const handleLinkSubmit = () => {
+  const handleLinkSubmit = async () => {
     if (!linkUrl.trim()) return;
-    toast({
-      title: "Link added",
-      description: `${linkUrl} will be processed shortly.`,
-    });
-    setLinkUrl("");
-    setShowUploadModal(false);
+    
+    setIsIngesting(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("ingest-website", {
+        body: {
+          url: linkUrl,
+          crawlSubpages: false,
+          followSitemap: false,
+          userId: null,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.success) {
+        toast({
+          title: "Resource added successfully",
+          description: `Created ${data.chunkCount} chunks.`,
+        });
+      } else {
+        throw new Error(data?.error || "Failed to add resource");
+      }
+    } catch (error) {
+      console.error("Link ingestion error:", error);
+      toast({
+        title: "Failed to add resource",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsIngesting(false);
+      setLinkUrl("");
+      setShowUploadModal(false);
+    }
   };
 
   const stats = [
@@ -221,6 +288,8 @@ export default function Knowledge() {
                           <input
                             type="checkbox"
                             id="crawl-subpages"
+                            checked={crawlSubpages}
+                            onChange={(e) => setCrawlSubpages(e.target.checked)}
                             className="rounded border-border"
                           />
                           <Label htmlFor="crawl-subpages" className="text-sm font-normal">
@@ -231,6 +300,8 @@ export default function Knowledge() {
                           <input
                             type="checkbox"
                             id="follow-sitemap"
+                            checked={followSitemap}
+                            onChange={(e) => setFollowSitemap(e.target.checked)}
                             className="rounded border-border"
                           />
                           <Label htmlFor="follow-sitemap" className="text-sm font-normal">
@@ -242,9 +313,16 @@ export default function Knowledge() {
                       <Button 
                         variant="glow" 
                         onClick={handleWebsiteSubmit}
-                        disabled={!websiteUrl.trim()}
+                        disabled={!websiteUrl.trim() || isIngesting}
                       >
-                        Start Ingestion
+                        {isIngesting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Ingesting...
+                          </>
+                        ) : (
+                          "Start Ingestion"
+                        )}
                       </Button>
                     </div>
                   </TabsContent>
@@ -279,9 +357,16 @@ export default function Knowledge() {
                       <Button 
                         variant="glow" 
                         onClick={handleLinkSubmit}
-                        disabled={!linkUrl.trim()}
+                        disabled={!linkUrl.trim() || isIngesting}
                       >
-                        Add Resource
+                        {isIngesting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Adding...
+                          </>
+                        ) : (
+                          "Add Resource"
+                        )}
                       </Button>
                     </div>
                   </TabsContent>
