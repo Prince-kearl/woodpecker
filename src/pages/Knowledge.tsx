@@ -107,12 +107,17 @@ export default function Knowledge() {
     setIsIngesting(true);
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("You must be logged in to add sources");
+      }
+
       const { data, error } = await supabase.functions.invoke("ingest-website", {
         body: {
           url: websiteUrl,
           crawlSubpages,
           followSitemap,
-          userId: null, // Will use service role
+          userId: user.id,
         },
       });
 
@@ -150,12 +155,17 @@ export default function Knowledge() {
     setIsIngesting(true);
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("You must be logged in to add sources");
+      }
+
       const { data, error } = await supabase.functions.invoke("ingest-website", {
         body: {
           url: linkUrl,
           crawlSubpages: false,
           followSitemap: false,
-          userId: null,
+          userId: user.id,
         },
       });
 

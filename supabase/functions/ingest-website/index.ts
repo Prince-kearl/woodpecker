@@ -79,7 +79,7 @@ serve(async (req) => {
       formattedUrl = `https://${formattedUrl}`;
     }
 
-    console.log(`Ingesting website: ${formattedUrl}, crawlSubpages: ${crawlSubpages}, followSitemap: ${followSitemap}`);
+    console.log(`Ingesting website: ${formattedUrl}, crawlSubpages: ${crawlSubpages}, followSitemap: ${followSitemap}, userId: ${userId}`);
 
     // Extract domain name for the source name
     const urlObj = new URL(formattedUrl);
@@ -90,8 +90,8 @@ serve(async (req) => {
       .from("knowledge_sources")
       .insert({
         name: sourceName,
-        source_type: "website",
-        file_path: formattedUrl,
+        source_type: "web",
+        original_url: formattedUrl,
         mime_type: "text/html",
         file_size: 0,
         user_id: userId,
