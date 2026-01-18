@@ -10,9 +10,10 @@ import {
   LogOut,
   ChevronRight
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { icon: Home, label: "Dashboard", path: "/" },
@@ -27,6 +28,17 @@ interface SidebarProps {
 
 export function Sidebar({ workspaces = [] }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
+
+  const userInitials = user?.email
+    ? user.email.substring(0, 2).toUpperCase()
+    : "U";
 
   return (
     <motion.aside
@@ -107,13 +119,21 @@ export function Sidebar({ workspaces = [] }: SidebarProps) {
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 px-2">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <span className="text-sm font-semibold text-white">JD</span>
+            <span className="text-sm font-semibold text-white">{userInitials}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">John Doe</p>
-            <p className="text-xs text-muted-foreground truncate">john@example.com</p>
+            <p className="text-sm font-medium text-foreground truncate">
+              {user?.user_metadata?.display_name || user?.email?.split("@")[0] || "User"}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-muted-foreground"
+            onClick={handleSignOut}
+            title="Sign out"
+          >
             <LogOut className="w-4 h-4" />
           </Button>
         </div>
