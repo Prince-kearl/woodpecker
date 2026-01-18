@@ -438,6 +438,11 @@ export default function Knowledge() {
                 status={source.status}
                 chunks={source.chunk_count}
                 updatedAt={source.updated_at}
+                createdAt={source.created_at}
+                fileSize={source.file_size}
+                originalUrl={source.original_url}
+                mimeType={source.mime_type}
+                errorMessage={source.error_message}
                 delay={0.2 + index * 0.03} 
               />
             ))}
