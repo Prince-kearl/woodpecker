@@ -15,8 +15,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
+import { Zap } from "lucide-react";
+
 const navItems = [
-  { icon: Home, label: "Dashboard", path: "/" },
+  { icon: Zap, label: "Search", path: "/" },
+  { icon: Home, label: "Dashboard", path: "/dashboard" },
   { icon: FolderOpen, label: "Workspaces", path: "/workspaces" },
   { icon: BookOpen, label: "Knowledge", path: "/knowledge" },
   { icon: Settings, label: "Settings", path: "/settings" },

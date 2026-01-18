@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Search from "./pages/Search";
 import Dashboard from "./pages/Dashboard";
 import Workspaces from "./pages/Workspaces";
 import CreateWorkspace from "./pages/CreateWorkspace";
@@ -27,7 +28,8 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/workspaces" element={<ProtectedRoute><Workspaces /></ProtectedRoute>} />
             <Route path="/workspaces/new" element={<ProtectedRoute><CreateWorkspace /></ProtectedRoute>} />
             <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
