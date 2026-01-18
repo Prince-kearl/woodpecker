@@ -11,6 +11,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Workspace = Database["public"]["Tables"]["workspaces"]["Row"] & {
   sourceCount?: number;
+  queryCount?: number;
 };
 
 export default function Workspaces() {
@@ -32,22 +33,34 @@ export default function Workspaces() {
         return;
       }
 
-      // Fetch source counts for all workspaces
-      const { data: sourceCounts } = await supabase
-        .from("workspace_sources")
-        .select("workspace_id")
-        .eq("is_enabled", true);
+      // Fetch source counts and conversation counts in parallel
+      const [sourceCountsResult, conversationCountsResult] = await Promise.all([
+        supabase
+          .from("workspace_sources")
+          .select("workspace_id")
+          .eq("is_enabled", true),
+        supabase
+          .from("conversations")
+          .select("workspace_id")
+      ]);
 
       // Count sources per workspace
-      const countMap: Record<string, number> = {};
-      sourceCounts?.forEach((item) => {
-        countMap[item.workspace_id] = (countMap[item.workspace_id] || 0) + 1;
+      const sourceCountMap: Record<string, number> = {};
+      sourceCountsResult.data?.forEach((item) => {
+        sourceCountMap[item.workspace_id] = (sourceCountMap[item.workspace_id] || 0) + 1;
+      });
+
+      // Count conversations per workspace
+      const queryCountMap: Record<string, number> = {};
+      conversationCountsResult.data?.forEach((item) => {
+        queryCountMap[item.workspace_id] = (queryCountMap[item.workspace_id] || 0) + 1;
       });
 
       // Merge counts into workspaces
       const workspacesWithCounts = workspacesData.map((ws) => ({
         ...ws,
-        sourceCount: countMap[ws.id] || 0,
+        sourceCount: sourceCountMap[ws.id] || 0,
+        queryCount: queryCountMap[ws.id] || 0,
       }));
 
       setWorkspaces(workspacesWithCounts);
@@ -178,6 +191,7 @@ export default function Workspaces() {
                 mode={workspace.mode}
                 color={workspace.color}
                 sourceCount={workspace.sourceCount}
+                queryCount={workspace.queryCount}
                 delay={0.1 + index * 0.05} 
               />
             ))}
