@@ -9,7 +9,9 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-type Workspace = Database["public"]["Tables"]["workspaces"]["Row"];
+type Workspace = Database["public"]["Tables"]["workspaces"]["Row"] & {
+  sourceCount?: number;
+};
 
 export default function Workspaces() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,14 +21,36 @@ export default function Workspaces() {
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
-      const { data, error } = await supabase
+      // Fetch workspaces
+      const { data: workspacesData, error: workspacesError } = await supabase
         .from("workspaces")
         .select("*")
         .order("updated_at", { ascending: false });
 
-      if (!error && data) {
-        setWorkspaces(data);
+      if (workspacesError || !workspacesData) {
+        setLoading(false);
+        return;
       }
+
+      // Fetch source counts for all workspaces
+      const { data: sourceCounts } = await supabase
+        .from("workspace_sources")
+        .select("workspace_id")
+        .eq("is_enabled", true);
+
+      // Count sources per workspace
+      const countMap: Record<string, number> = {};
+      sourceCounts?.forEach((item) => {
+        countMap[item.workspace_id] = (countMap[item.workspace_id] || 0) + 1;
+      });
+
+      // Merge counts into workspaces
+      const workspacesWithCounts = workspacesData.map((ws) => ({
+        ...ws,
+        sourceCount: countMap[ws.id] || 0,
+      }));
+
+      setWorkspaces(workspacesWithCounts);
       setLoading(false);
     };
 
@@ -153,6 +177,7 @@ export default function Workspaces() {
                 description={workspace.description}
                 mode={workspace.mode}
                 color={workspace.color}
+                sourceCount={workspace.sourceCount}
                 delay={0.1 + index * 0.05} 
               />
             ))}
