@@ -5,6 +5,7 @@ import {
   Link2, 
   Lightbulb, 
   Mic, 
+  MicOff,
   Send,
   Scale,
   BarChart3,
@@ -21,7 +22,9 @@ import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -68,6 +71,17 @@ export default function Search() {
   const { messages, isLoading, sendMessage, clearMessages } = useChat({
     workspaceId: selectedWorkspace,
     mode: "retrieval",
+  });
+
+  // Voice input hook
+  const { isListening, isSupported, toggleListening } = useVoiceInput({
+    onResult: (transcript) => {
+      setQuery((prev) => prev + (prev ? " " : "") + transcript);
+      textareaRef.current?.focus();
+    },
+    onError: (error) => {
+      toast.error(error);
+    },
   });
 
   // Get the latest assistant message
@@ -266,10 +280,33 @@ export default function Search() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 text-muted-foreground hover:text-foreground"
-                      title="Voice input"
+                      className={cn(
+                        "h-9 w-9 transition-colors",
+                        isListening 
+                          ? "text-destructive hover:text-destructive/80 bg-destructive/10" 
+                          : "text-muted-foreground hover:text-foreground",
+                        !isSupported && "opacity-50 cursor-not-allowed"
+                      )}
+                      onClick={toggleListening}
+                      disabled={!isSupported}
+                      title={
+                        !isSupported 
+                          ? "Voice input not supported in this browser" 
+                          : isListening 
+                            ? "Stop listening" 
+                            : "Start voice input"
+                      }
                     >
-                      <Mic className="h-4 w-4" />
+                      {isListening ? (
+                        <motion.div
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 1, repeat: Infinity }}
+                        >
+                          <MicOff className="h-4 w-4" />
+                        </motion.div>
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
                     </Button>
                     <Button
                       type="submit"
