@@ -74,15 +74,27 @@ export default function Search() {
   });
 
   // Voice input hook
+  const [pendingVoiceSubmit, setPendingVoiceSubmit] = useState(false);
   const { isListening, isSupported, transcript: liveTranscript, toggleListening } = useVoiceInput({
     onResult: (finalTranscript) => {
       setQuery((prev) => prev + (prev ? " " : "") + finalTranscript);
-      textareaRef.current?.focus();
+      setPendingVoiceSubmit(true);
     },
     onError: (error) => {
       toast.error(error);
     },
   });
+
+  // Auto-submit after voice input ends with a short delay
+  useEffect(() => {
+    if (!isListening && pendingVoiceSubmit && query.trim()) {
+      const timer = setTimeout(() => {
+        handleSubmit();
+        setPendingVoiceSubmit(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isListening, pendingVoiceSubmit, query]);
 
   // Get the latest assistant message
   const latestResponse = messages.filter(m => m.role === "assistant").pop();
