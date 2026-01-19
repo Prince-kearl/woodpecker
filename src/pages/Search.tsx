@@ -320,37 +320,53 @@ export default function Search() {
                   </div>
                 </div>
 
-                {/* Live Transcript Indicator */}
+                {/* Live Listening Indicator - Shows as soon as listening starts */}
                 <AnimatePresence>
-                  {isListening && liveTranscript && (
+                  {isListening && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       className="mt-2 pt-2 border-t border-border/50"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
+                        {/* Animated waveform */}
                         <motion.div
-                          className="flex gap-0.5"
-                          animate={{ opacity: [0.5, 1, 0.5] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
+                          className="flex items-center gap-0.5"
                         >
-                          {[0, 1, 2].map((i) => (
+                          {[0, 1, 2, 3, 4].map((i) => (
                             <motion.div
                               key={i}
-                              className="w-1 h-3 bg-primary rounded-full"
-                              animate={{ scaleY: [0.5, 1, 0.5] }}
+                              className="w-1 rounded-full bg-destructive"
+                              animate={{ 
+                                height: ["8px", "16px", "8px"],
+                              }}
                               transition={{
-                                duration: 0.6,
+                                duration: 0.5,
                                 repeat: Infinity,
-                                delay: i * 0.15,
+                                delay: i * 0.1,
+                                ease: "easeInOut",
                               }}
                             />
                           ))}
                         </motion.div>
-                        <span className="text-sm text-muted-foreground italic">
-                          {liveTranscript}
+                        
+                        {/* Status text or live transcript */}
+                        <span className="text-sm text-muted-foreground italic flex-1">
+                          {liveTranscript || "Listening... speak now"}
                         </span>
+                        
+                        {/* Stop button */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={toggleListening}
+                          className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Stop
+                        </Button>
                       </div>
                     </motion.div>
                   )}
