@@ -74,9 +74,9 @@ export default function Search() {
   });
 
   // Voice input hook
-  const { isListening, isSupported, toggleListening } = useVoiceInput({
-    onResult: (transcript) => {
-      setQuery((prev) => prev + (prev ? " " : "") + transcript);
+  const { isListening, isSupported, transcript: liveTranscript, toggleListening } = useVoiceInput({
+    onResult: (finalTranscript) => {
+      setQuery((prev) => prev + (prev ? " " : "") + finalTranscript);
       textareaRef.current?.focus();
     },
     onError: (error) => {
@@ -319,6 +319,42 @@ export default function Search() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Live Transcript Indicator */}
+                <AnimatePresence>
+                  {isListening && liveTranscript && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-2 pt-2 border-t border-border/50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <motion.div
+                          className="flex gap-0.5"
+                          animate={{ opacity: [0.5, 1, 0.5] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          {[0, 1, 2].map((i) => (
+                            <motion.div
+                              key={i}
+                              className="w-1 h-3 bg-primary rounded-full"
+                              animate={{ scaleY: [0.5, 1, 0.5] }}
+                              transition={{
+                                duration: 0.6,
+                                repeat: Infinity,
+                                delay: i * 0.15,
+                              }}
+                            />
+                          ))}
+                        </motion.div>
+                        <span className="text-sm text-muted-foreground italic">
+                          {liveTranscript}
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </form>
           </motion.div>
