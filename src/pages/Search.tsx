@@ -85,16 +85,13 @@ export default function Search() {
     },
   });
 
-  // Auto-submit after voice input ends with a short delay
+  // Reference to track if we should auto-submit (used by effect below handleSubmit)
+  const pendingVoiceSubmitRef = useRef(false);
+  
+  // Keep ref in sync with state
   useEffect(() => {
-    if (!isListening && pendingVoiceSubmit && query.trim()) {
-      const timer = setTimeout(() => {
-        handleSubmit();
-        setPendingVoiceSubmit(false);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [isListening, pendingVoiceSubmit, query]);
+    pendingVoiceSubmitRef.current = pendingVoiceSubmit;
+  }, [pendingVoiceSubmit]);
 
   // Get the latest assistant message
   const latestResponse = messages.filter(m => m.role === "assistant").pop();
@@ -159,6 +156,17 @@ export default function Search() {
     await sendMessage(query);
     setQuery("");
   };
+
+  // Auto-submit after voice input ends with a short delay
+  useEffect(() => {
+    if (!isListening && pendingVoiceSubmit && query.trim()) {
+      const timer = setTimeout(() => {
+        handleSubmit();
+        setPendingVoiceSubmit(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isListening, pendingVoiceSubmit, query]);
 
   const handleQuickMode = (mode: string) => {
     const modePrompts: Record<string, string> = {
