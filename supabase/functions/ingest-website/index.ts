@@ -126,11 +126,13 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             url: formattedUrl,
-            limit: 20, // Limit pages for now
-            maxDepth: 2,
+            limit: 100, // Increased from 20 to get more pages
+            maxDepth: 4, // Increased from 2 to crawl deeper
+            includePaths: ["/admissions/*", "/academics/*", "/about/*", "/programmes/*", "/faculty/*", "/research/*", "/students/*"],
             scrapeOptions: {
               formats: ["markdown"],
               onlyMainContent: true,
+              waitFor: 2000, // Wait for dynamic content
             },
           }),
         });
@@ -146,9 +148,9 @@ serve(async (req) => {
         if (crawlData.id) {
           console.log(`Crawl job started: ${crawlData.id}`);
           
-          // Poll for results (max 60 seconds)
+          // Poll for results (max 5 minutes for deeper crawls)
           let attempts = 0;
-          const maxAttempts = 30;
+          const maxAttempts = 150; // 5 minutes (150 * 2 seconds)
           
           while (attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, 2000));
