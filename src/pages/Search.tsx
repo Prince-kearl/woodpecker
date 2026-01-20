@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { 
   Search as SearchIcon, 
   Link2, 
@@ -463,8 +465,22 @@ export default function Search() {
                 </div>
 
                 {/* Response Content */}
-                <div className="prose prose-invert max-w-none text-foreground leading-relaxed mb-6">
-                  {latestResponse.content}
+                <div className="prose prose-invert max-w-none text-foreground leading-relaxed mb-6 
+                  prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-6 prose-headings:mb-3
+                  prose-h2:text-xl prose-h3:text-lg prose-h4:text-base
+                  prose-p:text-foreground prose-p:mb-4 prose-p:leading-7
+                  prose-strong:text-primary prose-strong:font-semibold
+                  prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-2
+                  prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-2
+                  prose-li:text-foreground prose-li:leading-7
+                  prose-a:text-primary prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-primary/80
+                  prose-blockquote:border-l-primary prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r
+                  prose-code:text-primary prose-code:bg-muted/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
+                  prose-hr:border-border prose-hr:my-6
+                ">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {latestResponse.content}
+                  </ReactMarkdown>
                 </div>
 
                 {/* Sources Panel */}
