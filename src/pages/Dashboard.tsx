@@ -1,50 +1,51 @@
 import { motion } from "framer-motion";
-import { Plus, FolderOpen, FileText, MessageSquare, Zap } from "lucide-react";
+import { Plus, FolderOpen, FileText, MessageSquare, Zap, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { WorkspaceCard } from "@/components/dashboard/WorkspaceCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-
-const stats = [
-  { title: "Workspaces", value: 5, icon: FolderOpen, change: "+2 this week", trend: "up" as const },
-  { title: "Knowledge Sources", value: 23, icon: FileText, change: "3 processing", trend: "neutral" as const },
-  { title: "Total Queries", value: "1.2k", icon: MessageSquare, change: "+18% vs last month", trend: "up" as const },
-  { title: "Avg Response Time", value: "1.2s", icon: Zap, change: "-0.3s improvement", trend: "up" as const },
-];
-
-const workspaces = [
-  {
-    id: "1",
-    name: "ML Research Papers",
-    description: "Collection of machine learning papers including transformers, neural networks, and deep learning fundamentals.",
-    sourceCount: 12,
-    queryCount: 156,
-    mode: "study" as const,
-    color: "#00d4aa",
-  },
-  {
-    id: "2",
-    name: "Company Policies",
-    description: "HR policies, compliance documents, and employee handbooks for quick reference.",
-    sourceCount: 8,
-    queryCount: 89,
-    mode: "institutional" as const,
-    color: "#ec4899",
-  },
-  {
-    id: "3",
-    name: "CS201 Exam Prep",
-    description: "Data structures and algorithms course materials for final exam preparation.",
-    sourceCount: 6,
-    queryCount: 234,
-    mode: "exam" as const,
-    color: "#a855f7",
-  },
-];
+import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 export default function Dashboard() {
+  const { data: workspaces = [], isLoading: workspacesLoading } = useWorkspaces();
+  const { data: statsData, isLoading: statsLoading } = useDashboardStats();
+
+  const stats = [
+    { 
+      title: "Workspaces", 
+      value: statsData?.workspaceCount ?? 0, 
+      icon: FolderOpen, 
+      change: "", 
+      trend: "neutral" as const 
+    },
+    { 
+      title: "Knowledge Sources", 
+      value: statsData?.sourceCount ?? 0, 
+      icon: FileText, 
+      change: statsData?.processingCount ? `${statsData.processingCount} processing` : "", 
+      trend: "neutral" as const 
+    },
+    { 
+      title: "Total Queries", 
+      value: statsData?.queryCount ?? 0, 
+      icon: MessageSquare, 
+      change: "", 
+      trend: "neutral" as const 
+    },
+    { 
+      title: "Avg Response Time", 
+      value: "~1s", 
+      icon: Zap, 
+      change: "", 
+      trend: "up" as const 
+    },
+  ];
+
+  const recentWorkspaces = workspaces.slice(0, 3);
+
   return (
     <AppLayout>
       <div className="p-8">
@@ -70,9 +71,15 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, index) => (
-            <StatsCard key={stat.title} {...stat} delay={index * 0.1} />
-          ))}
+          {statsLoading ? (
+            <div className="col-span-4 flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            stats.map((stat, index) => (
+              <StatsCard key={stat.title} {...stat} delay={index * 0.1} />
+            ))
+          )}
         </div>
 
         {/* Main Content */}
@@ -85,11 +92,35 @@ export default function Dashboard() {
                 <Button variant="ghost" size="sm">View All</Button>
               </Link>
             </div>
-            <div className="grid gap-4">
-              {workspaces.map((workspace, index) => (
-                <WorkspaceCard key={workspace.id} {...workspace} delay={0.2 + index * 0.1} />
-              ))}
-            </div>
+            {workspacesLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : recentWorkspaces.length === 0 ? (
+              <div className="glass rounded-xl p-8 text-center">
+                <p className="text-muted-foreground mb-4">No workspaces yet</p>
+                <Link to="/workspaces/new">
+                  <Button variant="outline">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create your first workspace
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {recentWorkspaces.map((workspace, index) => (
+                  <WorkspaceCard 
+                    key={workspace.id} 
+                    id={workspace.id}
+                    name={workspace.name}
+                    description={workspace.description}
+                    mode={workspace.mode}
+                    color={workspace.color}
+                    delay={0.2 + index * 0.1} 
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Activity Feed */}
