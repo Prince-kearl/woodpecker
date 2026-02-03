@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import type { Database } from "@/integrations/supabase/types";
@@ -7,6 +8,33 @@ type Workspace = Database["public"]["Tables"]["workspaces"]["Row"];
 
 export function useWorkspaces() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Subscribe to realtime changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("workspaces-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workspaces",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          // Invalidate and refetch
+          queryClient.invalidateQueries({ queryKey: ["workspaces", user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   return useQuery({
     queryKey: ["workspaces", user?.id],
