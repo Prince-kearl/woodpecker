@@ -160,7 +160,7 @@ export function ChatInterface({
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="flex-1 overflow-auto">
-        <div className="w-full max-w-3xl mx-auto px-4 py-8 flex flex-col items-center">
+        <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 py-4 sm:py-8 flex flex-col items-center">
           {loadingHistory ? (
             <div className="flex items-center justify-center min-h-[300px]">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -176,7 +176,7 @@ export function ChatInterface({
                 <div className="p-4 rounded-2xl mb-4 inline-block" style={{ backgroundColor: `${config.color}15` }}>
                   <ModeIcon className="w-10 h-10" style={{ color: config.color }} />
                 </div>
-                <h1 className="text-4xl md:text-5xl font-medium mb-3 gradient-text">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-medium mb-3 gradient-text">
                   {workspaceName}
                 </h1>
                 <p className="text-muted-foreground text-lg">
@@ -192,10 +192,10 @@ export function ChatInterface({
                 className="w-full mb-8"
               >
                 <form onSubmit={handleSubmit}>
-                  <div className="relative bg-card border border-border rounded-3xl p-3 shadow-lg focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                  <div className="relative bg-card border border-border rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-lg focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                     <div className="flex items-start gap-2">
-                      {/* Left Actions */}
-                      <div className="flex items-center gap-1 pt-1">
+                      {/* Left Actions - hide on small screens */}
+                      <div className="hidden sm:flex items-center gap-1 pt-1">
                         <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Search sources">
                           <SearchIcon className="h-4 w-4" />
                         </Button>
@@ -448,11 +448,11 @@ export function ChatInterface({
       {/* Input area - always visible when there are messages */}
       {hasMessages && (
         <div className="border-t border-border bg-background">
-          <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <form onSubmit={handleSubmit}>
-              <div className="relative bg-card border border-border rounded-3xl p-3 shadow-lg focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+              <div className="relative bg-card border border-border rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-lg focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                 <div className="flex items-start gap-2">
-                  <div className="flex items-center gap-1 pt-1">
+                  <div className="hidden sm:flex items-center gap-1 pt-1">
                     <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Search sources">
                       <SearchIcon className="h-4 w-4" />
                     </Button>
