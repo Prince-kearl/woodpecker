@@ -93,9 +93,11 @@ export function Sidebar({ workspaces = [] }: SidebarProps) {
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Workspaces
             </span>
-            <Button variant="ghost" size="icon" className="h-6 w-6">
-              <Plus className="w-4 h-4" />
-            </Button>
+            <Link to="/workspaces/new">
+              <Button variant="ghost" size="icon" className="h-6 w-6">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
           
           <div className="space-y-1">
