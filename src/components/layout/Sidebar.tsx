@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { 
-  Brain, 
   FolderOpen, 
   MessageSquare, 
   Settings, 
@@ -8,14 +7,14 @@ import {
   Home,
   BookOpen,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Zap
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-
-import { Zap } from "lucide-react";
+import woodpeckerLogo from "@/assets/woodpecker-logo.png";
 
 const navItems = [
   { icon: Zap, label: "Search", path: "/" },
@@ -52,8 +51,8 @@ export function Sidebar({ workspaces = [] }: SidebarProps) {
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center glow">
-            <Brain className="w-5 h-5 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center glow overflow-hidden">
+            <img src={woodpeckerLogo} alt="Woodpecker" className="w-7 h-7 object-contain" />
           </div>
           <div>
             <h1 className="font-bold text-lg text-foreground">Woodpecker</h1>

@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { Brain, ArrowRight, FileText, Layers, MessageSquare, Zap } from "lucide-react";
+import { ArrowRight, FileText, Layers, MessageSquare, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import woodpeckerLogo from "@/assets/woodpecker-logo.png";
 
 const features = [
   {
@@ -33,8 +34,8 @@ export default function Index() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Brain className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center overflow-hidden">
+              <img src={woodpeckerLogo} alt="Woodpecker" className="w-7 h-7 object-contain" />
             </div>
             <span className="font-bold text-lg text-foreground">Woodpecker</span>
           </Link>
@@ -111,8 +112,8 @@ export default function Index() {
                   {/* Sidebar */}
                   <div className="w-48 bg-sidebar border-r border-sidebar-border p-4">
                     <div className="flex items-center gap-2 mb-6">
-                      <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                        <Brain className="w-4 h-4 text-primary-foreground" />
+                      <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center overflow-hidden">
+                        <img src={woodpeckerLogo} alt="Woodpecker" className="w-5 h-5 object-contain" />
                       </div>
                       <span className="font-semibold text-sm text-foreground">Woodpecker</span>
                     </div>
@@ -230,8 +231,8 @@ export default function Index() {
       <footer className="py-8 border-t border-border">
         <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <Brain className="w-4 h-4 text-primary-foreground" />
+            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center overflow-hidden">
+              <img src={woodpeckerLogo} alt="Woodpecker" className="w-5 h-5 object-contain" />
             </div>
             <span className="font-semibold text-foreground">Woodpecker</span>
           </div>
