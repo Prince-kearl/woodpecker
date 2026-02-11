@@ -4,12 +4,16 @@ import { Send, Paperclip, Sparkles, BookOpen, FileText, ExternalLink, Loader2, T
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useChat } from "@/hooks/useChat";
+import { useAuth } from "@/hooks/useAuth";
+import ReactMarkdown from "react-markdown";
 
 interface ChatInterfaceProps {
   workspaceId?: string;
   workspaceName: string;
   mode: "study" | "exam" | "retrieval" | "institutional";
   sources?: Array<{ name: string; content?: string }>;
+  conversationId?: string | null;
+  onFirstMessage?: (conversationId: string) => void;
 }
 
 const modeConfig = {
@@ -39,26 +43,29 @@ const modeConfig = {
   },
 };
 
-export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }: ChatInterfaceProps) {
+export function ChatInterface({ workspaceId, workspaceName, mode, sources = [], conversationId, onFirstMessage }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { user } = useAuth();
   
-  const { messages, isLoading, sendMessage, clearMessages } = useChat({
+  const { messages, isLoading, loadingHistory, sendMessage, clearMessages } = useChat({
     workspaceId,
+    conversationId,
     mode,
     sources,
+    onFirstMessage,
   });
 
   const config = modeConfig[mode];
   const ModeIcon = config.icon;
 
-  // Auto-scroll to bottom when new messages arrive
+  const userInitials = user?.email?.substring(0, 2).toUpperCase() || "U";
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -69,13 +76,9 @@ export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    
     const message = input;
     setInput("");
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-    
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
     await sendMessage(message);
   };
 
@@ -84,10 +87,7 @@ export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div 
-            className="p-2 rounded-lg"
-            style={{ backgroundColor: `${config.color}20` }}
-          >
+          <div className="p-2 rounded-lg" style={{ backgroundColor: `${config.color}20` }}>
             <ModeIcon className="w-5 h-5" style={{ color: config.color }} />
           </div>
           <div>
@@ -96,40 +96,27 @@ export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }
           </div>
         </div>
         {messages.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearMessages}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear
+          <Button variant="ghost" size="sm" onClick={clearMessages} className="text-muted-foreground hover:text-foreground">
+            <Trash2 className="w-4 h-4 mr-2" />Clear
           </Button>
         )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-6">
-        {messages.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center h-full text-center"
-          >
-            <div 
-              className="p-4 rounded-2xl mb-4"
-              style={{ backgroundColor: `${config.color}15` }}
-            >
+        {loadingHistory ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : messages.length === 0 ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-full text-center">
+            <div className="p-4 rounded-2xl mb-4" style={{ backgroundColor: `${config.color}15` }}>
               <ModeIcon className="w-10 h-10" style={{ color: config.color }} />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              Start a conversation
-            </h3>
-            <p className="text-sm text-muted-foreground max-w-md">
-              {config.placeholder}
-            </p>
+            <h3 className="text-lg font-medium text-foreground mb-2">Start a conversation</h3>
+            <p className="text-sm text-muted-foreground max-w-md">{config.placeholder}</p>
           </motion.div>
-        )}
+        ) : null}
 
         <AnimatePresence mode="popLayout">
           {messages.map((message) => (
@@ -139,31 +126,22 @@ export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={cn(
-                "flex gap-4",
-                message.role === "user" ? "justify-end" : "justify-start"
-              )}
+              className={cn("flex gap-4", message.role === "user" ? "justify-end" : "justify-start")}
             >
               {message.role === "assistant" && (
                 <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
                   <Sparkles className="w-4 h-4 text-primary-foreground" />
                 </div>
               )}
-              
-              <div className={cn(
-                "max-w-[80%] space-y-3",
-                message.role === "user" && "order-first"
-              )}>
+              <div className={cn("max-w-[80%] space-y-3", message.role === "user" && "order-first")}>
                 <div className={cn(
                   "rounded-2xl px-4 py-3",
-                  message.role === "user" 
-                    ? "bg-primary text-primary-foreground ml-auto" 
-                    : "glass"
+                  message.role === "user" ? "bg-primary text-primary-foreground ml-auto" : "glass"
                 )}>
                   {message.content ? (
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                      {message.content}
-                    </p>
+                    <div className="text-sm leading-relaxed prose prose-sm prose-invert max-w-none">
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -172,7 +150,6 @@ export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }
                   )}
                 </div>
 
-                {/* Sources */}
                 {message.sources && message.sources.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground font-medium">Sources</p>
@@ -188,19 +165,11 @@ export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }
                           <FileText className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-foreground truncate">
-                                {source.title}
-                              </span>
-                              {source.page && (
-                                <span className="text-xs text-muted-foreground">
-                                  p.{source.page}
-                                </span>
-                              )}
+                              <span className="text-xs font-medium text-foreground truncate">{source.title}</span>
+                              {source.page && <span className="text-xs text-muted-foreground">p.{source.page}</span>}
                               <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {source.excerpt}
-                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{source.excerpt}</p>
                           </div>
                         </div>
                       </motion.div>
@@ -211,20 +180,15 @@ export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }
 
               {message.role === "user" && (
                 <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-semibold text-accent-foreground">JD</span>
+                  <span className="text-xs font-semibold text-accent-foreground">{userInitials}</span>
                 </div>
               )}
             </motion.div>
           ))}
         </AnimatePresence>
 
-        {/* Loading indicator */}
         {isLoading && messages.length > 0 && messages[messages.length - 1]?.content && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-2 text-muted-foreground pl-12"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 text-muted-foreground pl-12">
             <Loader2 className="w-4 h-4 animate-spin" />
             <span className="text-sm">AI is thinking...</span>
           </motion.div>
@@ -239,7 +203,6 @@ export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }
           <Button type="button" variant="ghost" size="icon" className="flex-shrink-0">
             <Paperclip className="w-5 h-5" />
           </Button>
-          
           <div className="flex-1 glass rounded-xl p-1">
             <textarea
               ref={textareaRef}
@@ -250,25 +213,12 @@ export function ChatInterface({ workspaceId, workspaceName, mode, sources = [] }
               disabled={isLoading}
               className="w-full bg-transparent border-0 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none disabled:opacity-50"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); }
               }}
             />
           </div>
-
-          <Button 
-            type="submit" 
-            size="icon" 
-            disabled={!input.trim() || isLoading}
-            className="gradient-primary glow flex-shrink-0"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+          <Button type="submit" size="icon" disabled={!input.trim() || isLoading} className="gradient-primary glow flex-shrink-0">
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </form>
       </div>
