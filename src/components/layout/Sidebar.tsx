@@ -27,15 +27,17 @@ const navItems = [
 
 interface SidebarProps {
   workspaces?: Array<{ id: string; name: string; color: string }>;
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ workspaces = [] }: SidebarProps) {
+export function Sidebar({ workspaces = [], onNavigate }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
+    onNavigate?.();
     navigate("/login");
   };
 
@@ -47,7 +49,7 @@ export function Sidebar({ workspaces = [] }: SidebarProps) {
     <motion.aside
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="w-64 h-screen bg-sidebar border-r border-sidebar-border flex flex-col"
+      className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col"
     >
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
@@ -67,7 +69,7 @@ export function Sidebar({ workspaces = [] }: SidebarProps) {
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
-            <Link key={item.path} to={item.path}>
+            <Link key={item.path} to={item.path} onClick={onNavigate}>
               <motion.div
                 whileHover={{ x: 4 }}
                 className={cn(
@@ -102,7 +104,7 @@ export function Sidebar({ workspaces = [] }: SidebarProps) {
           
           <div className="space-y-1">
             {workspaces.map((workspace) => (
-              <Link key={workspace.id} to={`/workspace/${workspace.id}`}>
+              <Link key={workspace.id} to={`/workspace/${workspace.id}`} onClick={onNavigate}>
                 <motion.div
                   whileHover={{ x: 4 }}
                   className="flex items-center gap-3 px-4 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"

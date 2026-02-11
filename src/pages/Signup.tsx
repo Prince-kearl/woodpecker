@@ -126,7 +126,7 @@ export default function Signup() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -138,7 +138,7 @@ export default function Signup() {
               <Brain className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-bold text-xl text-foreground">RAG Platform</h1>
+              <h1 className="font-bold text-xl text-foreground">Woodpecker</h1>
               <p className="text-xs text-muted-foreground">Knowledge Engine</p>
             </div>
           </Link>

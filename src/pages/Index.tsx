@@ -31,7 +31,7 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
               <Brain className="w-5 h-5 text-primary-foreground" />
@@ -52,10 +52,10 @@ export default function Index() {
       {/* Hero */}
       <section className="pt-32 pb-20 relative overflow-hidden">
         <div className="absolute inset-0" style={{ backgroundImage: 'var(--gradient-glow)' }} />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-accent/10 rounded-full blur-3xl" />
         
-        <div className="container mx-auto px-6 relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -71,12 +71,12 @@ export default function Index() {
               <span className="text-sm text-muted-foreground">Powered by Advanced RAG Technology</span>
             </motion.div>
 
-            <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
               Your Knowledge,{" "}
               <span className="gradient-text">Supercharged</span>
             </h1>
             
-            <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+            <p className="text-base sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
               Create intelligent AI assistants from your documents, books, and websites. 
               Upload once, use everywhere across unlimited workspaces.
             </p>
@@ -107,9 +107,9 @@ export default function Index() {
             <div className="glass rounded-2xl p-2 shadow-2xl mx-auto max-w-5xl">
               <div className="bg-card rounded-xl overflow-hidden">
                 {/* Mock Dashboard */}
-                <div className="flex h-[400px]">
+                <div className="flex h-[300px] sm:h-[400px]">
                   {/* Sidebar */}
-                  <div className="w-48 bg-sidebar border-r border-sidebar-border p-4">
+                  <div className="hidden sm:block w-48 bg-sidebar border-r border-sidebar-border p-4">
                     <div className="flex items-center gap-2 mb-6">
                       <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
                         <Brain className="w-4 h-4 text-primary-foreground" />
@@ -128,16 +128,16 @@ export default function Index() {
                     </div>
                   </div>
                   {/* Main Content */}
-                  <div className="flex-1 p-6">
-                    <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="flex-1 p-4 sm:p-6">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
                       {[
                         { label: "Workspaces", value: "5" },
                         { label: "Sources", value: "23" },
                         { label: "Queries", value: "1.2k" },
                       ].map((stat) => (
-                        <div key={stat.label} className="glass rounded-xl p-4">
-                          <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                          <p className="text-sm text-muted-foreground">{stat.label}</p>
+                        <div key={stat.label} className="glass rounded-xl p-3 sm:p-4">
+                          <p className="text-lg sm:text-2xl font-bold text-foreground">{stat.value}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">{stat.label}</p>
                         </div>
                       ))}
                     </div>
@@ -162,7 +162,7 @@ export default function Index() {
 
       {/* Features */}
       <section className="py-20 border-t border-border">
-        <div className="container mx-auto px-6">
+        <div className="container mx-auto px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -200,12 +200,12 @@ export default function Index() {
 
       {/* CTA */}
       <section className="py-20 border-t border-border">
-        <div className="container mx-auto px-6">
+        <div className="container mx-auto px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="glass rounded-3xl p-12 text-center relative overflow-hidden"
+            className="glass rounded-2xl sm:rounded-3xl p-6 sm:p-12 text-center relative overflow-hidden"
           >
             <div className="absolute inset-0" style={{ backgroundImage: 'var(--gradient-glow)' }} />
             <div className="relative z-10">
@@ -228,7 +228,7 @@ export default function Index() {
 
       {/* Footer */}
       <footer className="py-8 border-t border-border">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="container mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <Brain className="w-4 h-4 text-primary-foreground" />

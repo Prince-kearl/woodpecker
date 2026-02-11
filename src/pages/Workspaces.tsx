@@ -112,7 +112,7 @@ export default function Workspaces() {
 
   return (
     <AppLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -120,7 +120,7 @@ export default function Workspaces() {
           className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"
         >
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Workspaces</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Workspaces</h1>
             <p className="text-muted-foreground mt-1">
               Manage your RAG knowledge assistants
             </p>
@@ -138,9 +138,9 @@ export default function Workspaces() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex items-center gap-4 mb-6"
+          className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6"
         >
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 min-w-[200px] max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search workspaces..."

@@ -402,7 +402,7 @@ export default function CreateWorkspace() {
 
   return (
     <AppLayout>
-      <div className="p-8 max-w-3xl mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -413,7 +413,7 @@ export default function CreateWorkspace() {
             <ChevronLeft className="w-4 h-4" />
             Back to Workspaces
           </Link>
-          <h1 className="text-3xl font-bold text-foreground">Create Workspace</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Create Workspace</h1>
           <p className="text-muted-foreground mt-1">
             Set up a new knowledge assistant for your documents
           </p>
@@ -469,7 +469,7 @@ export default function CreateWorkspace() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="glass rounded-xl p-8 mb-8"
+          className="glass rounded-xl p-4 sm:p-8 mb-6 sm:mb-8"
         >
           <AnimatePresence mode="wait">
             {renderStepContent()}
