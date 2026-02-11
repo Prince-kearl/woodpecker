@@ -36,7 +36,7 @@ export default function Index() {
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
               <Brain className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-lg text-foreground">RAG Platform</span>
+            <span className="font-bold text-lg text-foreground">Woodpecker</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link to="/login">
@@ -114,7 +114,7 @@ export default function Index() {
                       <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
                         <Brain className="w-4 h-4 text-primary-foreground" />
                       </div>
-                      <span className="font-semibold text-sm text-foreground">RAG Platform</span>
+                      <span className="font-semibold text-sm text-foreground">Woodpecker</span>
                     </div>
                     <div className="space-y-2">
                       {["Dashboard", "Workspaces", "Knowledge", "Settings"].map((item, i) => (
@@ -233,10 +233,10 @@ export default function Index() {
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <Brain className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-foreground">RAG Platform</span>
+            <span className="font-semibold text-foreground">Woodpecker</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 RAG Platform. Built with ❤️ for knowledge seekers.
+            © 2024 Woodpecker. Built with ❤️ for knowledge seekers.
           </p>
         </div>
       </footer>

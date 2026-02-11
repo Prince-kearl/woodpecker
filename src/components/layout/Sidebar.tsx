@@ -56,7 +56,7 @@ export function Sidebar({ workspaces = [] }: SidebarProps) {
             <Brain className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-bold text-lg text-foreground">RAG Platform</h1>
+            <h1 className="font-bold text-lg text-foreground">Woodpecker</h1>
             <p className="text-xs text-muted-foreground">Knowledge Engine</p>
           </div>
         </Link>
