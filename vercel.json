@@ -4,7 +4,7 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/(?!(assets|\.well-known))(.*)",
+      "source": "/(?!(assets|\\.well-known))(.*)",
       "destination": "/index.html"
     }
   ]
