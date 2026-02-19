@@ -171,13 +171,13 @@ export default function Workspace() {
   return (
     <AppLayout>
       <div className="flex h-full">
-        {/* Conversation History Panel - hidden on mobile */}
+        {/* Conversation History Panel */}
         {showHistory && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 280, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            className="hidden md:block border-r border-border bg-card overflow-hidden flex-shrink-0"
+            className="border-r border-border bg-card overflow-hidden flex-shrink-0"
           >
             <ConversationList
               conversations={conversations}
@@ -197,10 +197,10 @@ export default function Workspace() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between p-3 sm:p-4 border-b border-border bg-card"
+            className="flex items-center justify-between p-4 border-b border-border bg-card"
           >
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => setShowHistory(!showHistory)} className="hidden md:inline-flex">
+              <Button variant="ghost" size="icon" onClick={() => setShowHistory(!showHistory)} className="md:flex">
                 {showHistory ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
               </Button>
               <Link to="/workspaces">
@@ -239,9 +239,9 @@ export default function Workspace() {
         {showSettings && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 320, opacity: 1 }}
+            animate={{ width: 380, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            className="hidden md:block border-l border-border bg-card overflow-hidden flex-shrink-0"
+            className="border-l border-border bg-card overflow-hidden flex-shrink-0"
           >
             <div className="p-6 space-y-6 h-full overflow-auto">
               <div>

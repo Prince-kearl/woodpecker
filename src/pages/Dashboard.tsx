@@ -48,15 +48,15 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="p-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8"
+          className="flex items-center justify-between mb-8"
         >
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
             <p className="text-muted-foreground mt-1">
               Welcome back! Here's an overview of your knowledge platform.
             </p>
@@ -70,9 +70,9 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {statsLoading ? (
-            <div className="col-span-2 lg:col-span-4 flex justify-center py-8">
+            <div className="col-span-4 flex justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : (

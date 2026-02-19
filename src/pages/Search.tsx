@@ -139,13 +139,13 @@ export default function Search() {
   return (
     <AppLayout>
       <div className="flex h-full">
-        {/* Conversation History Panel - hidden on mobile */}
+        {/* Conversation History Panel */}
         {showHistory && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 280, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            className="hidden md:block border-r border-border bg-card overflow-hidden flex-shrink-0"
+            className="border-r border-border bg-card overflow-hidden flex-shrink-0"
           >
             <ConversationList
               conversations={conversations}
@@ -165,13 +165,12 @@ export default function Search() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between p-3 sm:p-4 border-b border-border bg-card"
+            className="flex items-center justify-between p-4 border-b border-border bg-card"
           >
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
-                className="hidden md:inline-flex"
                 onClick={() => setShowHistory(!showHistory)}
               >
                 {showHistory ? (
@@ -180,18 +179,18 @@ export default function Search() {
                   <PanelLeft className="w-5 h-5" />
                 )}
               </Button>
-              <h1 className="text-base sm:text-lg font-semibold text-foreground">
+              <h1 className="text-lg font-semibold text-foreground">
                 Institutional RAG
               </h1>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-3">
               {/* Workspace Selector */}
               {workspaces.length > 0 && (
                 <Select
                   value={selectedWorkspace}
                   onValueChange={setSelectedWorkspace}
                 >
-                  <SelectTrigger className="bg-card border-border w-[140px] sm:w-[200px]">
+                  <SelectTrigger className="bg-card border-border w-[200px]">
                     <SelectValue placeholder="Select a workspace" />
                   </SelectTrigger>
                   <SelectContent>
@@ -237,9 +236,9 @@ export default function Search() {
         {showSettings && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 320, opacity: 1 }}
+            animate={{ width: 380, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            className="hidden md:block border-l border-border bg-card overflow-hidden flex-shrink-0"
+            className="border-l border-border bg-card overflow-hidden flex-shrink-0"
           >
             <div className="p-6 space-y-6 h-full overflow-auto">
               <div className="flex items-center justify-between">
