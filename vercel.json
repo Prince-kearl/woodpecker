@@ -1,10 +1,10 @@
 {
-  "framework": "react-router",
   "buildCommand": "npm run build",
   "outputDirectory": "build",
+  "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/(?!(assets|\.well-known))(.*)",
       "destination": "/index.html"
     }
   ]
