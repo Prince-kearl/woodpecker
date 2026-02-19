@@ -73,16 +73,54 @@ serve(async (req) => {
       );
     }
 
-    // Format URL
+    // Format and validate URL
     let formattedUrl = url.trim();
     if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
       formattedUrl = `https://${formattedUrl}`;
     }
 
+    let urlObj: URL;
+    try {
+      urlObj = new URL(formattedUrl);
+    } catch {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid URL format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Only allow http/https protocols
+    if (!["http:", "https:"].includes(urlObj.protocol)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Only HTTP and HTTPS protocols are allowed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Block internal/private IPs and localhost
+    const hostname = urlObj.hostname.toLowerCase();
+    const blockedPatterns = [
+      /^localhost$/,
+      /^127\./,
+      /^\[::1\]$/,
+      /^10\./,
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+      /^192\.168\./,
+      /^169\.254\./,
+      /^0\./,
+    ];
+
+    if (blockedPatterns.some(pattern => pattern.test(hostname))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Cannot crawl private or internal addresses" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    formattedUrl = urlObj.toString();
+
     console.log(`Ingesting website: ${formattedUrl}, crawlSubpages: ${crawlSubpages}, followSitemap: ${followSitemap}, userId: ${userId}`);
 
-    // Extract domain name for the source name
-    const urlObj = new URL(formattedUrl);
     const sourceName = urlObj.hostname;
 
     // Create knowledge source record
