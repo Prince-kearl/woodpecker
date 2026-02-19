@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm run build",
+  "deployCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "framework": "react",
+  "sourceNpm": "npm",
+  "installCommand": "npm install",
+  "routes": [
+    {
+      "src": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
