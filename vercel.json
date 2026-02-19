@@ -1,13 +1,9 @@
 {
-  "buildCommand": "npm run build",
-  "deployCommand": "npm run build",
-  "devCommand": "npm run dev",
   "framework": "react",
-  "sourceNpm": "npm",
-  "installCommand": "npm install",
-  "routes": [
+  "buildCommand": "npm run build",
+  "rewrites": [
     {
-      "src": "/(.*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
