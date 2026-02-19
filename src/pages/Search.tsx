@@ -44,7 +44,7 @@ export default function Search() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [showSettings, setShowSettings] = useState(false);
-  const [showHistory, setShowHistory] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
   const [retrievalMode, setRetrievalMode] = useState<RetrievalMode>("hybrid");
   const [topK, setTopK] = useState(5);
   const [sourceScopes, setSourceScopes] = useState<SourceScope[]>([]);
