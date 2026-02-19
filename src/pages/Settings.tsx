@@ -93,14 +93,14 @@ export default function Settings() {
 
   return (
     <AppLayout>
-      <div className="p-8 max-w-5xl mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 w-full max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <h1 className="text-3xl font-bold text-foreground mb-2">Settings</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Settings</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Manage your account, preferences, and platform configuration
           </p>
         </motion.div>

@@ -48,23 +48,23 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8 w-full">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6 sm:mb-8"
         >
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1">
               Welcome back! Here's an overview of your knowledge platform.
             </p>
           </div>
-          <Link to="/workspaces/new">
-            <Button variant="glow" size="lg">
+          <Link to="/workspaces/new" className="w-full sm:w-auto">
+            <Button variant="glow" size="lg" className="w-full sm:w-auto">
               <Plus className="w-5 h-5 mr-2" />
-              New Workspace
+              <span className="text-xs sm:text-sm">New Workspace</span>
             </Button>
           </Link>
         </motion.div>

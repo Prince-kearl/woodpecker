@@ -31,19 +31,19 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
               <Brain className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-lg text-foreground">Woodpecker</span>
+            <span className="font-bold text-sm sm:text-lg text-foreground">Woodpecker</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link to="/login">
-              <Button variant="ghost">Sign In</Button>
+              <Button variant="ghost" size="sm" className="text-xs sm:text-sm">Sign In</Button>
             </Link>
             <Link to="/signup">
-              <Button variant="glow">Get Started</Button>
+              <Button variant="glow" size="sm" className="text-xs sm:text-sm">Get Started</Button>
             </Link>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function Index() {
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
         
-        <div className="container mx-auto px-6 relative z-10">
+        <div className="w-full px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -65,32 +65,32 @@ export default function Index() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8"
+              className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full glass mb-6 sm:mb-8"
             >
-              <Zap className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Powered by Advanced RAG Technology</span>
+              <Zap className="w-4 h-4 text-primary flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-muted-foreground">Powered by Advanced RAG Technology</span>
             </motion.div>
 
-            <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground mb-4 sm:mb-6 leading-tight">
               Your Knowledge,{" "}
               <span className="gradient-text">Supercharged</span>
             </h1>
             
-            <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-10 max-w-2xl mx-auto px-2">
               Create intelligent AI assistants from your documents, books, and websites. 
               Upload once, use everywhere across unlimited workspaces.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/signup">
-                <Button variant="glow" size="xl">
-                  Start Building Free
-                  <ArrowRight className="w-5 h-5 ml-2" />
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-2">
+              <Link to="/signup" className="w-full sm:w-auto">
+                <Button variant="glow" size="lg" className="w-full sm:w-auto">
+                  <span className="text-xs sm:text-sm">Start Building Free</span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
-              <Link to="/login">
-                <Button variant="glass" size="xl">
-                  View Demo
+              <Link to="/login" className="w-full sm:w-auto">
+                <Button variant="glass" size="lg" className="w-full sm:w-auto">
+                  <span className="text-xs sm:text-sm">View Demo</span>
                 </Button>
               </Link>
             </div>

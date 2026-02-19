@@ -138,40 +138,52 @@ export default function Search() {
 
   return (
     <AppLayout>
-      <div className="flex h-full">
-        {/* Conversation History Panel */}
+      <div className="flex flex-col lg:flex-row h-full w-full">
+        {/* Conversation History Panel - Hidden on mobile, sidebar on tablet+ */}
         {showHistory && (
-          <motion.aside
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 280, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            className="border-r border-border bg-card overflow-hidden flex-shrink-0"
-          >
-            <ConversationList
-              conversations={conversations}
-              activeId={activeConversationId}
-              loading={conversationsLoading}
-              onSelect={setActiveConversationId}
-              onCreate={handleNewChat}
-              onRename={renameConversation}
-              onDelete={deleteConversation}
-            />
-          </motion.aside>
+          <>
+            {/* Mobile Overlay */}
+            <div className="lg:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setShowHistory(false)} />
+            
+            {/* History Panel */}
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.3 }}
+              className="fixed lg:static top-0 left-0 h-screen lg:h-auto z-40 w-64 lg:w-80 lg:w-auto lg:flex-shrink-0 lg:flex-grow-0 border-r border-border bg-card overflow-hidden"
+              style={{ maxWidth: "min(100%, 280px)", lg: { maxWidth: "280px" } }}
+            >
+              <ConversationList
+                conversations={conversations}
+                activeId={activeConversationId}
+                loading={conversationsLoading}
+                onSelect={(id) => {
+                  setActiveConversationId(id);
+                  setShowHistory(false); // Auto-close on mobile selection
+                }}
+                onCreate={handleNewChat}
+                onRename={renameConversation}
+                onDelete={deleteConversation}
+              />
+            </motion.aside>
+          </>
         )}
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 w-full">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between p-4 border-b border-border bg-card"
+            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 p-3 sm:p-4 border-b border-border bg-card"
           >
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowHistory(!showHistory)}
+                className="lg:hidden"
               >
                 {showHistory ? (
                   <PanelLeftClose className="w-5 h-5" />
@@ -179,19 +191,19 @@ export default function Search() {
                   <PanelLeft className="w-5 h-5" />
                 )}
               </Button>
-              <h1 className="text-lg font-semibold text-foreground">
+              <h1 className="text-base sm:text-lg font-semibold text-foreground truncate">
                 Institutional RAG
               </h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
               {/* Workspace Selector */}
               {workspaces.length > 0 && (
                 <Select
                   value={selectedWorkspace}
                   onValueChange={setSelectedWorkspace}
                 >
-                  <SelectTrigger className="bg-card border-border w-[200px]">
-                    <SelectValue placeholder="Select a workspace" />
+                  <SelectTrigger className="bg-card border-border w-32 sm:w-44 flex-shrink-0">
+                    <SelectValue placeholder="Select workspace" />
                   </SelectTrigger>
                   <SelectContent>
                     {workspaces.map((workspace) => (
@@ -203,7 +215,7 @@ export default function Search() {
                               backgroundColor: workspace.color || "#00d4aa",
                             }}
                           />
-                          {workspace.name}
+                          <span className="truncate">{workspace.name}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -214,6 +226,7 @@ export default function Search() {
                 variant={showSettings ? "secondary" : "ghost"}
                 size="icon"
                 onClick={() => setShowSettings(!showSettings)}
+                className="flex-shrink-0"
               >
                 <Sliders className="w-5 h-5" />
               </Button>
@@ -232,98 +245,106 @@ export default function Search() {
           </div>
         </div>
 
-        {/* Settings Panel */}
+        {/* Settings Panel - Hidden on mobile, sidebar on tablet+ */}
         {showSettings && (
-          <motion.aside
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 380, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            className="border-l border-border bg-card overflow-hidden flex-shrink-0"
-          >
-            <div className="p-6 space-y-6 h-full overflow-auto">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
-                  Retrieval Settings
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setShowSettings(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Retrieval Mode */}
-              <div>
-                <label className="block text-sm text-muted-foreground mb-2">
-                  Retrieval Mode
-                </label>
-                <div className="flex bg-secondary rounded-lg border border-border overflow-hidden">
-                  {(["indexed", "live", "hybrid"] as RetrievalMode[]).map(
-                    (mode) => (
-                      <button
-                        key={mode}
-                        onClick={() => setRetrievalMode(mode)}
-                        className={cn(
-                          "flex-1 py-2.5 text-sm transition-all capitalize",
-                          retrievalMode === mode
-                            ? "gradient-primary text-primary-foreground font-medium"
-                            : "text-muted-foreground hover:bg-secondary/80"
-                        )}
-                      >
-                        {mode === "live" ? "Live Web" : mode}
-                      </button>
-                    )
-                  )}
+          <>
+            {/* Mobile Overlay */}
+            <div className="lg:hidden fixed inset-0 z-30 bg-black/50" onClick={() => setShowSettings(false)} />
+            
+            {/* Settings Sidebar */}
+            <motion.aside
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.3 }}
+              className="fixed lg:static top-0 right-0 h-screen lg:h-auto z-40 w-64 sm:w-80 lg:w-auto lg:flex-shrink-0 border-l border-border bg-card overflow-hidden"
+              style={{ maxWidth: "min(100%, 320px)", lg: { maxWidth: "380px" } }}
+            >
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 h-full overflow-y-auto">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base sm:text-lg font-semibold text-foreground">
+                    Settings
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 flex-shrink-0 lg:hidden"
+                    onClick={() => setShowSettings(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
 
-              {/* Source Scope */}
-              {sourceScopes.length > 0 && (
+                {/* Retrieval Mode */}
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-2">
-                    Source Scope
+                  <label className="block text-xs sm:text-sm text-muted-foreground mb-2">
+                    Retrieval Mode
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {sourceScopes.map((scope) => (
-                      <button
-                        key={scope.id}
-                        onClick={() => toggleSourceScope(scope.id)}
-                        className={cn(
-                          "px-3 py-2 text-sm rounded-lg border transition-all",
-                          scope.selected
-                            ? "bg-primary/20 border-primary text-primary"
-                            : "bg-secondary border-border text-muted-foreground hover:bg-primary/10 hover:border-primary hover:text-primary"
-                        )}
-                      >
-                        {scope.name}
-                      </button>
-                    ))}
+                  <div className="flex bg-secondary rounded-lg border border-border overflow-hidden">
+                    {(["indexed", "live", "hybrid"] as RetrievalMode[]).map(
+                      (mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setRetrievalMode(mode)}
+                          className={cn(
+                            "flex-1 py-2 sm:py-2.5 text-xs sm:text-sm transition-all capitalize",
+                            retrievalMode === mode
+                              ? "gradient-primary text-primary-foreground font-medium"
+                              : "text-muted-foreground hover:bg-secondary/80"
+                          )}
+                        >
+                          {mode === "live" ? "Live" : mode}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
-              )}
 
-              {/* Top-K Evidence */}
-              <div>
-                <label className="block text-sm text-muted-foreground mb-2">
-                  Top-K Evidence
-                </label>
-                <div className="flex items-center gap-4">
-                  <span className="text-primary font-medium w-6">{topK}</span>
-                  <Slider
-                    value={[topK]}
-                    onValueChange={([value]) => setTopK(value)}
-                    min={1}
-                    max={10}
-                    step={1}
-                    className="flex-1"
-                  />
+                {/* Source Scope */}
+                {sourceScopes.length > 0 && (
+                  <div>
+                    <label className="block text-xs sm:text-sm text-muted-foreground mb-2">
+                      Source Scope
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {sourceScopes.map((scope) => (
+                        <button
+                          key={scope.id}
+                          onClick={() => toggleSourceScope(scope.id)}
+                          className={cn(
+                            "px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm rounded-lg border transition-all",
+                            scope.selected
+                              ? "bg-primary/20 border-primary text-primary"
+                              : "bg-secondary border-border text-muted-foreground hover:bg-primary/10 hover:border-primary hover:text-primary"
+                          )}
+                        >
+                          {scope.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top-K Evidence */}
+                <div>
+                  <label className="block text-xs sm:text-sm text-muted-foreground mb-2">
+                    Top-K Evidence
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <span className="text-primary font-medium w-6 text-sm">{topK}</span>
+                    <Slider
+                      value={[topK]}
+                      onValueChange={([value]) => setTopK(value)}
+                      min={1}
+                      max={10}
+                      step={1}
+                      className="flex-1"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.aside>
+            </motion.aside>
+          </>
         )}
       </div>
     </AppLayout>
