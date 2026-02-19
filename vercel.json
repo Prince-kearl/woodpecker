@@ -1,6 +1,7 @@
 {
   "framework": "react-router",
   "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",
