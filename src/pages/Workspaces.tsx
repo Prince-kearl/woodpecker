@@ -112,23 +112,23 @@ export default function Workspaces() {
 
   return (
     <AppLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8 w-full">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-6 sm:mb-8"
         >
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Workspaces</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Workspaces</h1>
+            <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1">
               Manage your RAG knowledge assistants
             </p>
           </div>
-          <Link to="/workspaces/new">
-            <Button variant="glow" size="lg">
+          <Link to="/workspaces/new" className="w-full sm:w-auto">
+            <Button variant="glow" size="lg" className="w-full sm:w-auto">
               <Plus className="w-5 h-5 mr-2" />
-              Create Workspace
+              <span className="text-xs sm:text-sm">Create Workspace</span>
             </Button>
           </Link>
         </motion.div>
@@ -138,21 +138,21 @@ export default function Workspaces() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex items-center gap-4 mb-6"
+          className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6"
         >
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground flex-shrink-0" />
             <Input
-              placeholder="Search workspaces..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-secondary border-border"
+              className="pl-10 bg-secondary border-border text-sm"
             />
           </div>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" className="flex-shrink-0">
             <Filter className="w-4 h-4" />
           </Button>
-          <div className="flex items-center gap-1 glass rounded-lg p-1">
+          <div className="flex items-center gap-1 glass rounded-lg p-1 flex-shrink-0">
             <Button
               variant={viewMode === "grid" ? "secondary" : "ghost"}
               size="icon"
@@ -179,8 +179,8 @@ export default function Workspaces() {
           </div>
         ) : (
           <div className={viewMode === "grid" 
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-            : "flex flex-col gap-4"
+            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
+            : "flex flex-col gap-3 sm:gap-4"
           }>
             {filteredWorkspaces.map((workspace, index) => (
               <WorkspaceCard 
@@ -204,7 +204,7 @@ export default function Workspaces() {
             animate={{ opacity: 1 }}
             className="text-center py-12"
           >
-            <p className="text-muted-foreground">No workspaces found matching your search.</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">No workspaces found matching your search.</p>
           </motion.div>
         )}
       </div>

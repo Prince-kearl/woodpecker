@@ -64,41 +64,41 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="w-full max-w-md"
         >
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center glow">
-              <Brain className="w-6 h-6 text-primary-foreground" />
+          <Link to="/" className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
+            <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl gradient-primary flex items-center justify-center glow flex-shrink-0">
+              <Brain className="w-5 sm:w-6 h-5 sm:h-6 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="font-bold text-xl text-foreground">RAG Platform</h1>
+            <div className="min-w-0">
+              <h1 className="font-bold text-lg sm:text-xl text-foreground">RAG Platform</h1>
               <p className="text-xs text-muted-foreground">Knowledge Engine</p>
             </div>
           </Link>
 
-          <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back</h2>
-          <p className="text-muted-foreground mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Welcome back</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-6 sm:mb-8">
             Sign in to access your knowledge workspaces
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Email</label>
+              <label className="text-xs sm:text-sm font-medium text-foreground">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground flex-shrink-0" />
                 <Input
                   type="email"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12 bg-secondary border-border"
+                  className="pl-10 h-10 sm:h-12 bg-secondary border-border text-sm"
                   required
                   disabled={isLoading}
                 />
@@ -107,39 +107,39 @@ export default function Login() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">Password</label>
+                <label className="text-xs sm:text-sm font-medium text-foreground">Password</label>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground flex-shrink-0" />
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10 h-12 bg-secondary border-border"
+                  className="pl-10 pr-10 h-10 sm:h-12 bg-secondary border-border text-sm"
                   required
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground flex-shrink-0"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" variant="glow" size="lg" className="w-full mt-6" disabled={isLoading}>
+            <Button type="submit" variant="glow" size="lg" className="w-full mt-6 text-sm" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Signing in...
+                  <Loader2 className="w-4 sm:w-5 h-4 sm:h-5 mr-2 animate-spin" />
+                  <span className="text-xs sm:text-sm">Signing in...</span>
                 </>
               ) : (
                 <>
-                  Sign In
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <span className="text-xs sm:text-sm">Sign In</span>
+                  <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 ml-2" />
                 </>
               )}
             </Button>
@@ -157,7 +157,7 @@ export default function Login() {
               type="button"
               variant="outline"
               size="lg"
-              className="w-full"
+              className="w-full text-xs sm:text-sm"
               disabled={isLoading}
               onClick={async () => {
                 const { error } = await signInWithGoogle();
@@ -170,7 +170,7 @@ export default function Login() {
                 }
               }}
             >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+              <svg className="w-4 sm:w-5 h-4 sm:h-5 mr-2 flex-shrink-0" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -180,7 +180,7 @@ export default function Login() {
             </Button>
           </form>
 
-          <p className="text-center text-muted-foreground mt-8">
+          <p className="text-center text-xs sm:text-sm text-muted-foreground mt-6 sm:mt-8">
             Don't have an account?{" "}
             <Link to="/signup" className="text-primary hover:underline font-medium">
               Sign up
@@ -201,15 +201,15 @@ export default function Login() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
-          className="relative z-10 text-center max-w-lg"
+          className="relative z-10 text-center max-w-lg px-4"
         >
-          <div className="w-32 h-32 rounded-3xl gradient-primary mx-auto mb-8 flex items-center justify-center glow animate-float">
-            <Brain className="w-16 h-16 text-primary-foreground" />
+          <div className="w-24 sm:w-32 h-24 sm:h-32 rounded-3xl gradient-primary mx-auto mb-6 sm:mb-8 flex items-center justify-center glow animate-float">
+            <Brain className="w-12 sm:w-16 h-12 sm:h-16 text-primary-foreground" />
           </div>
-          <h3 className="text-2xl font-bold text-foreground mb-4">
+          <h3 className="text-lg sm:text-2xl font-bold text-foreground mb-4">
             Your Knowledge, <span className="gradient-text">Supercharged</span>
           </h3>
-          <p className="text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Create intelligent assistants from your documents, books, and websites. 
             Get instant answers with source citations.
           </p>

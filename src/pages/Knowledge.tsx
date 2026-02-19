@@ -204,16 +204,16 @@ export default function Knowledge() {
 
   return (
     <AppLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8 w-full">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-6 sm:mb-8"
         >
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Knowledge Library</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Knowledge Library</h1>
+            <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1">
               Manage your ingested documents and data sources
             </p>
           </div>
@@ -221,9 +221,10 @@ export default function Knowledge() {
             variant="glow" 
             size="lg"
             onClick={() => setShowUploadModal(true)}
+            className="w-full sm:w-auto"
           >
             <Upload className="w-5 h-5 mr-2" />
-            Upload Content
+            <span className="text-xs sm:text-sm">Upload Content</span>
           </Button>
         </motion.div>
 
@@ -242,7 +243,7 @@ export default function Knowledge() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-2xl glass rounded-2xl p-6 relative"
+                className="w-full max-w-2xl glass rounded-2xl p-4 sm:p-6 relative"
               >
                 <Button
                   variant="ghost"
