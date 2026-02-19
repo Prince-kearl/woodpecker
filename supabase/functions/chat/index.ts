@@ -131,15 +131,23 @@ serve(async (req) => {
     // Create admin client for search function
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validate user if auth header provided
-    let userId: string | null = null;
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabaseUser.auth.getUser(token);
-      if (!claimsError && claimsData?.user) {
-        userId = claimsData.user.id;
-      }
+    // Enforce authentication
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getUser(token);
+    if (claimsError || !claimsData?.user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const userId = claimsData.user.id;
 
     const { messages, workspaceId, mode = "study" } = await req.json();
 
