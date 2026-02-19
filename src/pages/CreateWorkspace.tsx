@@ -181,9 +181,9 @@ export default function CreateWorkspace() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            className="space-y-6 sm:space-y-4 md:space-y-3"
           >
-            <div className="space-y-2">
+            <div className="space-y-2 sm:space-y-1 md:space-y-0.5">
               <label className="text-sm font-medium text-foreground">
                 Workspace Name <span className="text-destructive">*</span>
               </label>
@@ -191,7 +191,7 @@ export default function CreateWorkspace() {
                 placeholder="e.g., ML Research Papers"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-12 bg-secondary border-border text-lg"
+                className="h-12 bg-secondary border-border text-lg sm:h-10 sm:text-base md:h-8 md:text-sm"
                 maxLength={50}
               />
               <p className="text-xs text-muted-foreground">
@@ -199,7 +199,7 @@ export default function CreateWorkspace() {
               </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 sm:space-y-1 md:space-y-0.5">
               <label className="text-sm font-medium text-foreground">
                 Description
               </label>
@@ -209,14 +209,14 @@ export default function CreateWorkspace() {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
                 maxLength={200}
-                className="w-full px-4 py-3 rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="w-full px-4 py-3 rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none sm:py-2 sm:px-2 sm:text-sm md:py-1 md:px-1 md:text-xs"
               />
               <p className="text-xs text-muted-foreground">
                 {description.length}/200 characters
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 sm:space-y-2 md:space-y-1">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Palette className="w-4 h-4" />
                 Color Theme
@@ -251,7 +251,7 @@ export default function CreateWorkspace() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            className="space-y-6 sm:space-y-4 md:space-y-3"
           >
             <div>
               <h3 className="text-lg font-medium text-foreground mb-2">
@@ -284,7 +284,7 @@ export default function CreateWorkspace() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            className="space-y-6 sm:space-y-4 md:space-y-3"
           >
             <div>
               <h3 className="text-lg font-medium text-foreground mb-2">
@@ -328,7 +328,7 @@ export default function CreateWorkspace() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
+            className="space-y-6 sm:space-y-4 md:space-y-3"
           >
             <div>
               <h3 className="text-lg font-medium text-foreground mb-6">
