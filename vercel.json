@@ -1,10 +1,9 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "build",
-  "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/(?!(assets|\\.well-known))(.*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
