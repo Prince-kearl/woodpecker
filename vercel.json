@@ -1,5 +1,5 @@
 {
-  "framework": "react",
+  "framework": "react-router",
   "buildCommand": "npm run build",
   "rewrites": [
     {
