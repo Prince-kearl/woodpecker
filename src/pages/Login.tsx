@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { lovable } from "@/integrations/lovable/index";
+import { signInWithGoogle } from "@/hooks/useGoogleSignIn";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -160,9 +160,7 @@ export default function Login() {
               className="w-full"
               disabled={isLoading}
               onClick={async () => {
-                const { error } = await lovable.auth.signInWithOAuth("google", {
-                  redirect_uri: window.location.origin,
-                });
+                const { error } = await signInWithGoogle();
                 if (error) {
                   toast({
                     title: "Google sign-in failed",
