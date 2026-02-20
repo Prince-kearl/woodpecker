@@ -8,7 +8,11 @@ import {
   Shield, 
   Palette,
   Save,
-  Camera
+  Camera,
+  AlertCircle,
+  Check,
+  RotateCcw,
+  Loader2
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -26,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/hooks/useSettings";
 import { cn } from "@/lib/utils";
 
 const settingsTabs = [
@@ -40,60 +45,58 @@ const settingsTabs = [
 export default function Settings() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("profile");
+  const { 
+    settings, 
+    loading, 
+    saving, 
+    error, 
+    updateSetting, 
+    saveSetting,
+    saveAllSettings, 
+    resetSettings, 
+    hasChanges 
+  } = useSettings();
 
-  // Profile state
-  const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john@example.com",
-    bio: "Knowledge enthusiast and lifelong learner.",
-    organization: "Acme Corp",
-  });
-
-  // Workspace preferences
-  const [workspacePrefs, setWorkspacePrefs] = useState({
-    defaultMode: "study",
-    autoSaveEnabled: true,
-    showSourcePreviews: true,
-    compactView: false,
-    defaultWorkspace: "",
-  });
-
-  // Retrieval configuration
-  const [retrievalConfig, setRetrievalConfig] = useState({
-    topK: 5,
-    similarityThreshold: 0.7,
-    hybridSearchEnabled: true,
-    keywordWeight: 0.3,
-    rerankerEnabled: false,
-    maxContextLength: 4000,
-    chunkOverlap: 200,
-  });
-
-  // Notification settings
-  const [notifications, setNotifications] = useState({
-    emailDigest: true,
-    processingComplete: true,
-    weeklyInsights: false,
-    systemUpdates: true,
-  });
-
-  // Appearance settings
-  const [appearance, setAppearance] = useState({
-    theme: "dark",
-    fontSize: "medium",
-    animationsEnabled: true,
-  });
-
-  const handleSave = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been updated successfully.",
-    });
+  const handleSave = async () => {
+    try {
+      await saveAllSettings();
+      toast({
+        title: "Settings saved",
+        description: "Your preferences have been updated successfully.",
+        variant: "default",
+      });
+    } catch (err) {
+      toast({
+        title: "Error saving settings",
+        description: error || "An error occurred while saving your settings.",
+        variant: "destructive",
+      });
+    }
   };
+
+  const handleReset = () => {
+    if (confirm("Are you sure you want to discard unsaved changes?")) {
+      resetSettings();
+      toast({
+        title: "Changes discarded",
+        description: "Settings have been reset to their last saved values.",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 w-full max-w-6xl mx-auto">
+      <div className="p-3 sm:p-4 md:p-6 lg:p-8 w-full mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -105,17 +108,29 @@ export default function Settings() {
           </p>
         </motion.div>
 
+        {/* Error Alert */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-destructive/10 rounded-lg border border-destructive/30 flex items-start gap-3"
+          >
+            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-destructive">{error}</p>
+          </motion.div>
+        )}
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-card border border-border p-1 h-auto flex-wrap gap-1">
+          <TabsList className="bg-card border border-border p-1 h-auto flex-wrap gap-1 w-full justify-start">
             {settingsTabs.map((tab) => (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  "flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 )}
               >
-                <tab.icon className="w-4 h-4" />
+                <tab.icon className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden sm:inline">{tab.label}</span>
               </TabsTrigger>
             ))}
@@ -126,66 +141,72 @@ export default function Settings() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="glass rounded-xl p-6 space-y-6"
+              className="glass rounded-xl p-4 sm:p-6 space-y-6"
             >
-              <h2 className="text-xl font-semibold text-foreground">Profile Information</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground">Profile Information</h2>
               
               {/* Avatar Section */}
-              <div className="flex items-center gap-6">
-                <div className="relative">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+                <div className="relative flex-shrink-0">
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                     <span className="text-2xl font-bold text-white">
-                      {profile.name.split(" ").map(n => n[0]).join("")}
+                      {settings.name.split(" ").map(n => n[0]).join("").toUpperCase()}
                     </span>
                   </div>
-                  <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors">
+                  <button 
+                    className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors"
+                    aria-label="Upload avatar"
+                  >
                     <Camera className="w-4 h-4" />
                   </button>
                 </div>
-                <div>
-                  <h3 className="font-medium text-foreground">{profile.name}</h3>
-                  <p className="text-sm text-muted-foreground">{profile.email}</p>
+                <div className="min-w-0">
+                  <h3 className="font-medium text-foreground truncate">{settings.name || "Your Name"}</h3>
+                  <p className="text-sm text-muted-foreground truncate">{settings.email}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name" className="text-sm">Full Name *</Label>
                   <Input
                     id="name"
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                    value={settings.name}
+                    onChange={(e) => updateSetting("name", e.target.value)}
                     className="bg-background/50"
+                    placeholder="John Doe"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="email" className="text-sm">Email Address</Label>
                   <Input
                     id="email"
                     type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="bg-background/50"
+                    value={settings.email}
+                    disabled
+                    className="bg-background/50 opacity-50 cursor-not-allowed"
                   />
+                  <p className="text-xs text-muted-foreground">Email cannot be changed here</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="organization">Organization</Label>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="organization" className="text-sm">Organization</Label>
                   <Input
                     id="organization"
-                    value={profile.organization}
-                    onChange={(e) => setProfile({ ...profile, organization: e.target.value })}
+                    value={settings.organization || ""}
+                    onChange={(e) => updateSetting("organization", e.target.value)}
                     className="bg-background/50"
+                    placeholder="Your Company"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
+                <Label htmlFor="bio" className="text-sm">Bio</Label>
                 <Textarea
                   id="bio"
-                  value={profile.bio}
-                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                  className="bg-background/50 min-h-[100px]"
+                  value={settings.bio || ""}
+                  onChange={(e) => updateSetting("bio", e.target.value)}
+                  className="bg-background/50 min-h-[100px] text-sm"
                   placeholder="Tell us about yourself..."
                 />
               </div>
@@ -197,18 +218,18 @@ export default function Settings() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="glass rounded-xl p-6 space-y-6"
+              className="glass rounded-xl p-4 sm:p-6 space-y-6"
             >
-              <h2 className="text-xl font-semibold text-foreground">Workspace Preferences</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground">Workspace Preferences</h2>
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label>Default Assistant Mode</Label>
+                  <Label className="text-sm">Default Assistant Mode</Label>
                   <Select
-                    value={workspacePrefs.defaultMode}
-                    onValueChange={(value) => setWorkspacePrefs({ ...workspacePrefs, defaultMode: value })}
+                    value={settings.defaultMode}
+                    onValueChange={(value) => updateSetting("defaultMode", value as any)}
                   >
-                    <SelectTrigger className="bg-background/50">
+                    <SelectTrigger className="bg-background/50 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -224,47 +245,50 @@ export default function Settings() {
                 </div>
 
                 <div className="flex items-center justify-between py-3 border-b border-border">
-                  <div>
-                    <Label className="text-base">Auto-save Conversations</Label>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Auto-save Conversations</Label>
+                    <p className="text-xs text-muted-foreground">
                       Automatically save chat history for each workspace
                     </p>
                   </div>
                   <Switch
-                    checked={workspacePrefs.autoSaveEnabled}
+                    checked={settings.autoSaveEnabled}
                     onCheckedChange={(checked) => 
-                      setWorkspacePrefs({ ...workspacePrefs, autoSaveEnabled: checked })
+                      updateSetting("autoSaveEnabled", checked)
                     }
+                    className="ml-4 flex-shrink-0"
                   />
                 </div>
 
                 <div className="flex items-center justify-between py-3 border-b border-border">
-                  <div>
-                    <Label className="text-base">Show Source Previews</Label>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Show Source Previews</Label>
+                    <p className="text-xs text-muted-foreground">
                       Display document previews in source citations
                     </p>
                   </div>
                   <Switch
-                    checked={workspacePrefs.showSourcePreviews}
+                    checked={settings.showSourcePreviews}
                     onCheckedChange={(checked) => 
-                      setWorkspacePrefs({ ...workspacePrefs, showSourcePreviews: checked })
+                      updateSetting("showSourcePreviews", checked)
                     }
+                    className="ml-4 flex-shrink-0"
                   />
                 </div>
 
                 <div className="flex items-center justify-between py-3">
-                  <div>
-                    <Label className="text-base">Compact View</Label>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Compact View</Label>
+                    <p className="text-xs text-muted-foreground">
                       Use a more compact layout for workspace lists
                     </p>
                   </div>
                   <Switch
-                    checked={workspacePrefs.compactView}
+                    checked={settings.compactView}
                     onCheckedChange={(checked) => 
-                      setWorkspacePrefs({ ...workspacePrefs, compactView: checked })
+                      updateSetting("compactView", checked)
                     }
+                    className="ml-4 flex-shrink-0"
                   />
                 </div>
               </div>
@@ -276,29 +300,29 @@ export default function Settings() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="glass rounded-xl p-6 space-y-6"
+              className="glass rounded-xl p-4 sm:p-6 space-y-6"
             >
-              <h2 className="text-xl font-semibold text-foreground">Retrieval Configuration</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground">Retrieval Configuration</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Fine-tune how the RAG system retrieves and processes information
               </p>
 
-              <div className="space-y-8">
+              <div className="space-y-6 sm:space-y-8">
                 {/* Top-K Results */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-base">Top-K Results</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium">Top-K Results</Label>
+                      <p className="text-xs text-muted-foreground">
                         Number of relevant chunks to retrieve per query
                       </p>
                     </div>
-                    <span className="text-lg font-semibold text-primary">{retrievalConfig.topK}</span>
+                    <span className="text-lg font-semibold text-primary">{settings.topK}</span>
                   </div>
                   <Slider
-                    value={[retrievalConfig.topK]}
+                    value={[settings.topK]}
                     onValueChange={([value]) => 
-                      setRetrievalConfig({ ...retrievalConfig, topK: value })
+                      updateSetting("topK", value)
                     }
                     min={1}
                     max={20}
@@ -309,21 +333,21 @@ export default function Settings() {
 
                 {/* Similarity Threshold */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-base">Similarity Threshold</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium">Similarity Threshold</Label>
+                      <p className="text-xs text-muted-foreground">
                         Minimum similarity score for retrieved results
                       </p>
                     </div>
                     <span className="text-lg font-semibold text-primary">
-                      {(retrievalConfig.similarityThreshold * 100).toFixed(0)}%
+                      {(settings.similarityThreshold * 100).toFixed(0)}%
                     </span>
                   </div>
                   <Slider
-                    value={[retrievalConfig.similarityThreshold * 100]}
+                    value={[settings.similarityThreshold * 100]}
                     onValueChange={([value]) => 
-                      setRetrievalConfig({ ...retrievalConfig, similarityThreshold: value / 100 })
+                      updateSetting("similarityThreshold", value / 100)
                     }
                     min={0}
                     max={100}
@@ -334,21 +358,21 @@ export default function Settings() {
 
                 {/* Max Context Length */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-base">Max Context Length</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium">Max Context Length</Label>
+                      <p className="text-xs text-muted-foreground">
                         Maximum tokens to include in context window
                       </p>
                     </div>
                     <span className="text-lg font-semibold text-primary">
-                      {retrievalConfig.maxContextLength.toLocaleString()}
+                      {settings.maxContextLength.toLocaleString()}
                     </span>
                   </div>
                   <Slider
-                    value={[retrievalConfig.maxContextLength]}
+                    value={[settings.maxContextLength]}
                     onValueChange={([value]) => 
-                      setRetrievalConfig({ ...retrievalConfig, maxContextLength: value })
+                      updateSetting("maxContextLength", value)
                     }
                     min={1000}
                     max={16000}
@@ -358,43 +382,44 @@ export default function Settings() {
                 </div>
 
                 {/* Hybrid Search Toggle */}
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <div>
-                    <Label className="text-base">Hybrid Search</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 border-b border-border gap-3">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Hybrid Search</Label>
+                    <p className="text-xs text-muted-foreground">
                       Combine vector and keyword search for better results
                     </p>
                   </div>
                   <Switch
-                    checked={retrievalConfig.hybridSearchEnabled}
+                    checked={settings.hybridSearchEnabled}
                     onCheckedChange={(checked) => 
-                      setRetrievalConfig({ ...retrievalConfig, hybridSearchEnabled: checked })
+                      updateSetting("hybridSearchEnabled", checked)
                     }
+                    className="flex-shrink-0"
                   />
                 </div>
 
                 {/* Keyword Weight - Only shown when hybrid search is enabled */}
-                {retrievalConfig.hybridSearchEnabled && (
+                {settings.hybridSearchEnabled && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     className="space-y-4 pl-4 border-l-2 border-primary/30"
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-base">Keyword Weight</Label>
-                        <p className="text-sm text-muted-foreground">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium">Keyword Weight</Label>
+                        <p className="text-xs text-muted-foreground">
                           Balance between keyword and semantic search
                         </p>
                       </div>
                       <span className="text-lg font-semibold text-primary">
-                        {(retrievalConfig.keywordWeight * 100).toFixed(0)}%
+                        {(settings.keywordWeight * 100).toFixed(0)}%
                       </span>
                     </div>
                     <Slider
-                      value={[retrievalConfig.keywordWeight * 100]}
+                      value={[settings.keywordWeight * 100]}
                       onValueChange={([value]) => 
-                        setRetrievalConfig({ ...retrievalConfig, keywordWeight: value / 100 })
+                        updateSetting("keywordWeight", value / 100)
                       }
                       min={0}
                       max={100}
@@ -405,18 +430,19 @@ export default function Settings() {
                 )}
 
                 {/* Reranker Toggle */}
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <Label className="text-base">Enable Reranker</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 gap-3">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Enable Reranker</Label>
+                    <p className="text-xs text-muted-foreground">
                       Use a cross-encoder model to rerank results for higher accuracy
                     </p>
                   </div>
                   <Switch
-                    checked={retrievalConfig.rerankerEnabled}
+                    checked={settings.rerankerEnabled}
                     onCheckedChange={(checked) => 
-                      setRetrievalConfig({ ...retrievalConfig, rerankerEnabled: checked })
+                      updateSetting("rerankerEnabled", checked)
                     }
+                    className="flex-shrink-0"
                   />
                 </div>
               </div>
@@ -428,68 +454,72 @@ export default function Settings() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="glass rounded-xl p-6 space-y-6"
+              className="glass rounded-xl p-4 sm:p-6 space-y-6"
             >
-              <h2 className="text-xl font-semibold text-foreground">Notification Preferences</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground">Notification Preferences</h2>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <div>
-                    <Label className="text-base">Email Digest</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 border-b border-border gap-3">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Email Digest</Label>
+                    <p className="text-xs text-muted-foreground">
                       Receive a daily summary of your workspace activity
                     </p>
                   </div>
                   <Switch
-                    checked={notifications.emailDigest}
+                    checked={settings.emailDigest}
                     onCheckedChange={(checked) => 
-                      setNotifications({ ...notifications, emailDigest: checked })
+                      updateSetting("emailDigest", checked)
                     }
+                    className="flex-shrink-0"
                   />
                 </div>
 
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <div>
-                    <Label className="text-base">Processing Complete</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 border-b border-border gap-3">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Processing Complete</Label>
+                    <p className="text-xs text-muted-foreground">
                       Get notified when document processing finishes
                     </p>
                   </div>
                   <Switch
-                    checked={notifications.processingComplete}
+                    checked={settings.processingComplete}
                     onCheckedChange={(checked) => 
-                      setNotifications({ ...notifications, processingComplete: checked })
+                      updateSetting("processingComplete", checked)
                     }
+                    className="flex-shrink-0"
                   />
                 </div>
 
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <div>
-                    <Label className="text-base">Weekly Insights</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 border-b border-border gap-3">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Weekly Insights</Label>
+                    <p className="text-xs text-muted-foreground">
                       Receive weekly analytics about your knowledge usage
                     </p>
                   </div>
                   <Switch
-                    checked={notifications.weeklyInsights}
+                    checked={settings.weeklyInsights}
                     onCheckedChange={(checked) => 
-                      setNotifications({ ...notifications, weeklyInsights: checked })
+                      updateSetting("weeklyInsights", checked)
                     }
+                    className="flex-shrink-0"
                   />
                 </div>
 
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <Label className="text-base">System Updates</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 gap-3">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">System Updates</Label>
+                    <p className="text-xs text-muted-foreground">
                       Important platform updates and announcements
                     </p>
                   </div>
                   <Switch
-                    checked={notifications.systemUpdates}
+                    checked={settings.systemUpdates}
                     onCheckedChange={(checked) => 
-                      setNotifications({ ...notifications, systemUpdates: checked })
+                      updateSetting("systemUpdates", checked)
                     }
+                    className="flex-shrink-0"
                   />
                 </div>
               </div>
@@ -501,18 +531,18 @@ export default function Settings() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="glass rounded-xl p-6 space-y-6"
+              className="glass rounded-xl p-4 sm:p-6 space-y-6"
             >
-              <h2 className="text-xl font-semibold text-foreground">Appearance</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground">Appearance</h2>
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label>Theme</Label>
+                  <Label className="text-sm">Theme</Label>
                   <Select
-                    value={appearance.theme}
-                    onValueChange={(value) => setAppearance({ ...appearance, theme: value })}
+                    value={settings.theme}
+                    onValueChange={(value) => updateSetting("theme", value as any)}
                   >
-                    <SelectTrigger className="bg-background/50">
+                    <SelectTrigger className="bg-background/50 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -524,12 +554,12 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Font Size</Label>
+                  <Label className="text-sm">Font Size</Label>
                   <Select
-                    value={appearance.fontSize}
-                    onValueChange={(value) => setAppearance({ ...appearance, fontSize: value })}
+                    value={settings.fontSize}
+                    onValueChange={(value) => updateSetting("fontSize", value as any)}
                   >
-                    <SelectTrigger className="bg-background/50">
+                    <SelectTrigger className="bg-background/50 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -540,18 +570,19 @@ export default function Settings() {
                   </Select>
                 </div>
 
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <Label className="text-base">Enable Animations</Label>
-                    <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 gap-3">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Enable Animations</Label>
+                    <p className="text-xs text-muted-foreground">
                       Show smooth transitions and animations
                     </p>
                   </div>
                   <Switch
-                    checked={appearance.animationsEnabled}
+                    checked={settings.animationsEnabled}
                     onCheckedChange={(checked) => 
-                      setAppearance({ ...appearance, animationsEnabled: checked })
+                      updateSetting("animationsEnabled", checked)
                     }
+                    className="flex-shrink-0"
                   />
                 </div>
               </div>
@@ -563,77 +594,106 @@ export default function Settings() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="glass rounded-xl p-6 space-y-6"
+              className="glass rounded-xl p-4 sm:p-6 space-y-6"
             >
-              <h2 className="text-xl font-semibold text-foreground">Security Settings</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground">Security Settings</h2>
 
               <div className="space-y-6">
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400">
+                    💡 For security reasons, password changes and two-factor authentication must be configured through your email verification.
+                  </p>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
+                  <Label className="text-sm">Email Address</Label>
                   <Input
-                    id="current-password"
-                    type="password"
-                    className="bg-background/50"
-                    placeholder="Enter current password"
+                    type="email"
+                    value={settings.email}
+                    disabled
+                    className="bg-background/50 opacity-50 cursor-not-allowed text-sm"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Your verified email address associated with this account
+                  </p>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-password">New Password</Label>
-                    <Input
-                      id="new-password"
-                      type="password"
-                      className="bg-background/50"
-                      placeholder="Enter new password"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      className="bg-background/50"
-                      placeholder="Confirm new password"
-                    />
-                  </div>
-                </div>
-
-                <Button variant="outline" className="w-full md:w-auto">
-                  Update Password
-                </Button>
 
                 <div className="pt-6 border-t border-border space-y-4">
-                  <h3 className="font-medium text-foreground">Two-Factor Authentication</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="font-medium text-foreground text-sm">Two-Factor Authentication</h3>
+                  <p className="text-xs text-muted-foreground">
                     Add an extra layer of security to your account
                   </p>
-                  <Button variant="outline">Enable 2FA</Button>
+                  <Button variant="outline" disabled className="w-full sm:w-auto text-sm">
+                    Enable 2FA (Coming Soon)
+                  </Button>
                 </div>
 
                 <div className="pt-6 border-t border-border space-y-4">
-                  <h3 className="font-medium text-destructive">Danger Zone</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="font-medium text-destructive text-sm">Danger Zone</h3>
+                  <p className="text-xs text-muted-foreground">
                     Permanently delete your account and all associated data
                   </p>
-                  <Button variant="destructive">Delete Account</Button>
+                  <Button variant="destructive" disabled className="w-full sm:w-auto text-sm">
+                    Delete Account (Contact Support)
+                  </Button>
                 </div>
               </div>
             </motion.div>
           </TabsContent>
         </Tabs>
 
-        {/* Save Button */}
+        {/* Save/Reset Footer */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="flex justify-end mt-8"
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-8 pt-6 border-t border-border"
         >
-          <Button variant="glow" size="lg" onClick={handleSave}>
-            <Save className="w-4 h-4 mr-2" />
-            Save Changes
-          </Button>
+          <div className="flex-1">
+            {hasChanges && (
+              <p className="text-xs text-muted-foreground">
+                You have unsaved changes
+              </p>
+            )}
+            {!hasChanges && !saving && (
+              <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                <Check className="w-4 h-4" />
+                All changes saved
+              </div>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={handleReset}
+              disabled={!hasChanges || saving}
+              className="flex-1 sm:flex-initial"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Discard
+            </Button>
+            <Button 
+              variant="glow" 
+              size="lg" 
+              onClick={handleSave}
+              disabled={!hasChanges || saving}
+              className="flex-1 sm:flex-initial"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <span className="hidden sm:inline">Saving...</span>
+                  <span className="sm:hidden">Saving</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Save Changes</span>
+                  <span className="sm:hidden">Save</span>
+                </>
+              )}
+            </Button>
+          </div>
         </motion.div>
       </div>
     </AppLayout>

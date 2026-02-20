@@ -54,11 +54,10 @@ export function Sidebar({ workspaces = [], onNavigate }: SidebarProps) {
       <div className="p-6 border-b border-sidebar-border">
         <button onClick={() => handleNavigate("/")} className="flex items-center gap-3 group hover:opacity-80 transition-opacity text-left">
           <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center glow">
-            <Brain className="w-5 h-5 text-primary-foreground" />
+            <img src="/favicon.ico" alt="App Logo" className="w-8 h-8" />
           </div>
           <div>
             <h1 className="font-bold text-lg text-foreground">Woodpecker</h1>
-            <p className="text-xs text-muted-foreground">Knowledge Engine</p>
           </div>
         </button>
       </div>
