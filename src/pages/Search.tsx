@@ -60,7 +60,7 @@ export default function Search() {
     loading: conversationsLoading,
   } = useConversations(selectedWorkspace || undefined);
 
-  // Fetch workspaces
+  // Fetch workspaces with real-time subscription
   useEffect(() => {
     async function fetchWorkspaces() {
       if (!user) return;
@@ -73,14 +73,40 @@ export default function Search() {
 
       if (data && data.length > 0) {
         setWorkspaces(data);
-        setSelectedWorkspace(data[0].id);
+        if (!selectedWorkspace) {
+          setSelectedWorkspace(data[0].id);
+        }
       }
       setLoading(false);
     }
+    
     fetchWorkspaces();
-  }, [user]);
 
-  // Fetch source scopes when workspace changes
+    // Real-time subscription for workspaces
+    if (!user) return;
+    
+    const channel = supabase
+      .channel("workspaces-search")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workspaces",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchWorkspaces();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, selectedWorkspace]);
+
+  // Fetch source scopes when workspace changes with real-time subscription
   useEffect(() => {
     async function fetchSourceScopes() {
       if (!selectedWorkspace) return;
@@ -102,7 +128,47 @@ export default function Search() {
         setSourceScopes(scopes);
       }
     }
+
     fetchSourceScopes();
+
+    // Real-time subscription for workspace sources
+    if (!selectedWorkspace) return;
+
+    const channel = supabase
+      .channel(`workspace-sources-${selectedWorkspace}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workspace_sources",
+          filter: `workspace_id=eq.${selectedWorkspace}`,
+        },
+        () => {
+          fetchSourceScopes();
+        }
+      )
+      .subscribe();
+
+    const knowledgeChannel = supabase
+      .channel(`knowledge-sources-${selectedWorkspace}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "knowledge_sources",
+        },
+        () => {
+          fetchSourceScopes();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(knowledgeChannel);
+    };
   }, [selectedWorkspace]);
 
   // Reset conversation when workspace changes
@@ -257,8 +323,7 @@ export default function Search() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 0.3 }}
-              className="fixed lg:static top-0 right-0 h-screen lg:h-auto z-40 w-64 sm:w-80 lg:w-auto lg:flex-shrink-0 border-l border-border bg-card overflow-hidden"
-              style={{ maxWidth: "min(100%, 320px)", lg: { maxWidth: "380px" } }}
+              className="fixed lg:static top-0 right-0 h-screen lg:h-full z-40 w-64 sm:w-80 lg:w-[380px] lg:flex-shrink-0 border-l border-border bg-card overflow-hidden"
             >
               <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 h-full overflow-y-auto">
                 <div className="flex items-center justify-between">

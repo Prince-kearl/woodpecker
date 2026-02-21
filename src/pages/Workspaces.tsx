@@ -6,7 +6,9 @@ import { WorkspaceCard } from "@/components/dashboard/WorkspaceCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/hooks/queryKeys";
 import type { Database } from "@/integrations/supabase/types";
 
 type Workspace = Database["public"]["Tables"]["workspaces"]["Row"] & {
@@ -19,6 +21,7 @@ export default function Workspaces() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
@@ -69,8 +72,8 @@ export default function Workspaces() {
 
     fetchWorkspaces();
 
-    // Subscribe to realtime changes
-    const channel = supabase
+    // Subscribe to realtime changes for workspaces
+    const workspaceChannel = supabase
       .channel("workspaces-changes")
       .on(
         "postgres_changes",
@@ -82,6 +85,7 @@ export default function Workspaces() {
         (payload) => {
           if (payload.eventType === "INSERT") {
             setWorkspaces((prev) => [payload.new as Workspace, ...prev]);
+            queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
           } else if (payload.eventType === "UPDATE") {
             setWorkspaces((prev) =>
               prev.map((ws) =>
@@ -90,19 +94,60 @@ export default function Workspaces() {
                   : ws
               )
             );
+            queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
           } else if (payload.eventType === "DELETE") {
             setWorkspaces((prev) =>
               prev.filter((ws) => ws.id !== (payload.old as Workspace).id)
             );
+            queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.all });
           }
         }
       )
       .subscribe();
 
+    // Subscribe to workspace sources changes to update source counts
+    const sourcesChannel = supabase
+      .channel("workspace-sources-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workspace_sources",
+        },
+        () => {
+          fetchWorkspaces();
+          queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.all });
+        }
+      )
+      .subscribe();
+
+    // Subscribe to conversations changes to update query counts
+    const conversationsChannel = supabase
+      .channel("conversations-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "conversations",
+        },
+        () => {
+          fetchWorkspaces();
+          queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.all });
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(workspaceChannel);
+      supabase.removeChannel(sourcesChannel);
+      supabase.removeChannel(conversationsChannel);
     };
-  }, []);
+  }, [queryClient]);
 
   const filteredWorkspaces = workspaces.filter(
     (ws) =>

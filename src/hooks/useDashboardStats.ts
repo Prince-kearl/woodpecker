@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { queryKeys } from "./queryKeys";
 
 export function useDashboardStats() {
   const { user } = useAuth();
@@ -23,7 +24,7 @@ export function useDashboardStats() {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.byUserId(user.id) });
           }
         )
         .subscribe(),
@@ -39,7 +40,7 @@ export function useDashboardStats() {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.byUserId(user.id) });
           }
         )
         .subscribe(),
@@ -55,7 +56,7 @@ export function useDashboardStats() {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            queryClient.invalidateQueries({ queryKey: ["dashboard-stats", user.id] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.byUserId(user.id) });
           }
         )
         .subscribe(),
@@ -67,7 +68,7 @@ export function useDashboardStats() {
   }, [user, queryClient]);
 
   return useQuery({
-    queryKey: ["dashboard-stats", user?.id],
+    queryKey: queryKeys.dashboardStats.byUserId(user?.id || ""),
     queryFn: async () => {
       if (!user) return null;
 

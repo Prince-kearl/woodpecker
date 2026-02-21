@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkspaceMutations } from "@/hooks/useMutations";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -49,6 +50,7 @@ const modeDescriptions = {
 export default function CreateWorkspace() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { createWorkspace } = useWorkspaceMutations();
   const [currentStep, setCurrentStep] = useState(1);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -111,49 +113,13 @@ export default function CreateWorkspace() {
     setIsCreating(true);
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Not authenticated",
-          description: "Please log in to create a workspace.",
-          variant: "destructive",
-        });
-        navigate("/login");
-        return;
-      }
-
-      // Create workspace
-      const { data: workspace, error: workspaceError } = await supabase
-        .from("workspaces")
-        .insert({
-          name: name.trim(),
-          description: description.trim() || null,
-          color,
-          mode,
-          user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (workspaceError) throw workspaceError;
-
-      // Link selected sources to workspace
-      if (selectedSourceIds.length > 0 && workspace) {
-        const workspaceSources = selectedSourceIds.map(sourceId => ({
-          workspace_id: workspace.id,
-          source_id: sourceId,
-        }));
-
-        const { error: sourcesError } = await supabase
-          .from("workspace_sources")
-          .insert(workspaceSources);
-
-        if (sourcesError) {
-          console.error("Error linking sources:", sourcesError);
-          // Continue anyway, workspace was created
-        }
-      }
+      await createWorkspace({
+        name,
+        description,
+        color,
+        mode,
+        sourceIds: selectedSourceIds,
+      });
 
       toast({
         title: "Workspace Created! 🎉",

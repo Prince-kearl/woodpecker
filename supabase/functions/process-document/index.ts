@@ -10,6 +10,24 @@ const corsHeaders = {
 const CHUNK_SIZE = 1000; // characters per chunk
 const CHUNK_OVERLAP = 200; // overlap between chunks
 
+function sanitizeContent(text: string): string {
+  // Remove control characters (except newlines, tabs, carriage returns)
+  let sanitized = text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
+  
+  // Replace invalid Unicode escapes and sequences
+  // Remove incomplete or invalid \u sequences
+  sanitized = sanitized.replace(/\\u[0-9a-fA-F]{0,3}(?![0-9a-fA-F])/g, ' ');
+  
+  // Replace common problematic sequences
+  sanitized = sanitized.replace(/\u0000/g, ''); // Null character
+  sanitized = sanitized.replace(/\uFFFD/g, ' '); // Replacement character
+  
+  // Normalize whitespace
+  sanitized = sanitized.replace(/\s+/g, ' ').trim();
+  
+  return sanitized;
+}
+
 function splitIntoChunks(text: string, chunkSize: number, overlap: number): string[] {
   const chunks: string[] = [];
   let start = 0;
@@ -130,8 +148,87 @@ async function extractTextFromFile(
     return extractedText;
   }
   
-  // For DOCX, XLSX, PPTX - try to extract as text (basic support)
-  // These would ideally use a dedicated parser, but for now we'll try basic extraction
+  // For DOCX, XLSX, PPTX - these are ZIP files with XML content
+  if (mimeType?.includes("wordprocessingml") || filePath.endsWith('.docx')) {
+    try {
+      // DOCX files are ZIP archives containing XML
+      const arrayBuffer = await data.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: "application/zip" });
+      
+      // Try to extract text from the DOCX file
+      // Since we don't have a dedicated parser, we'll extract what we can from the binary
+      const text = await data.text();
+      
+      // Extract text between XML tags (basic approach for DOCX)
+      // Look for text nodes in the document.xml
+      const textPattern = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+      const matches = text.matchAll(textPattern);
+      const extractedLines: string[] = [];
+      
+      for (const match of matches) {
+        if (match[1]) {
+          extractedLines.push(match[1]);
+        }
+      }
+      
+      const extractedText = extractedLines.join(' ');
+      console.log(`Extracted ${extractedText.length} characters from DOCX`);
+      return extractedText || text;
+    } catch (docxError) {
+      console.error("DOCX extraction error:", docxError);
+      // Fall through to basic text extraction
+    }
+  }
+  
+  // For XLSX - try basic text extraction
+  if (mimeType?.includes("spreadsheetml") || filePath.endsWith('.xlsx')) {
+    try {
+      const text = await data.text();
+      
+      // Extract text between XML tags
+      const textPattern = /<t[^>]*>([^<]*)<\/t>/g;
+      const matches = text.matchAll(textPattern);
+      const extractedLines: string[] = [];
+      
+      for (const match of matches) {
+        if (match[1]) {
+          extractedLines.push(match[1]);
+        }
+      }
+      
+      const extractedText = extractedLines.join(' ');
+      console.log(`Extracted ${extractedText.length} characters from XLSX`);
+      return extractedText || text;
+    } catch (xlsxError) {
+      console.error("XLSX extraction error:", xlsxError);
+    }
+  }
+  
+  // For PPTX - try basic text extraction
+  if (mimeType?.includes("presentationml") || filePath.endsWith('.pptx')) {
+    try {
+      const text = await data.text();
+      
+      // Extract text between XML tags
+      const textPattern = /<a:t>([^<]*)<\/a:t>/g;
+      const matches = text.matchAll(textPattern);
+      const extractedLines: string[] = [];
+      
+      for (const match of matches) {
+        if (match[1]) {
+          extractedLines.push(match[1]);
+        }
+      }
+      
+      const extractedText = extractedLines.join(' ');
+      console.log(`Extracted ${extractedText.length} characters from PPTX`);
+      return extractedText || text;
+    } catch (pptxError) {
+      console.error("PPTX extraction error:", pptxError);
+    }
+  }
+  
+  // Fallback to basic text extraction
   const text = await data.text();
   console.log(`Attempted text extraction: ${text.length} characters`);
   return text;
@@ -185,7 +282,7 @@ serve(async (req) => {
 
     try {
       // Extract text from the file
-      const text = await extractTextFromFile(
+      let text = await extractTextFromFile(
         supabase,
         source.file_path,
         source.mime_type
@@ -195,7 +292,14 @@ serve(async (req) => {
         throw new Error("No text content extracted from document");
       }
 
-      console.log(`Text extracted: ${text.length} characters`);
+      // Sanitize content to remove problematic characters
+      text = sanitizeContent(text);
+      
+      if (text.length === 0) {
+        throw new Error("Document content is empty after sanitization");
+      }
+
+      console.log(`Text extracted and sanitized: ${text.length} characters`);
 
       // Split into chunks
       const chunks = splitIntoChunks(text, CHUNK_SIZE, CHUNK_OVERLAP);
@@ -210,7 +314,7 @@ serve(async (req) => {
       // Insert new chunks
       const chunkRecords = chunks.map((content, index) => ({
         source_id: sourceId,
-        content,
+        content: sanitizeContent(content), // Extra sanitization pass
         chunk_index: index,
         token_count: Math.ceil(content.length / 4), // Rough estimate
         metadata: {

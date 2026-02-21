@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useKnowledgeSourceMutations } from "@/hooks/useMutations";
 
 type SourceType = DB["public"]["Enums"]["source_type"];
 type ProcessingStatus = DB["public"]["Enums"]["processing_status"];
@@ -113,6 +114,7 @@ export function SourceCard({
   onDelete,
 }: SourceCardProps) {
   const { toast } = useToast();
+  const { deleteKnowledgeSource } = useKnowledgeSourceMutations();
   const [isExpanded, setIsExpanded] = useState(false);
   const [chunkPreviews, setChunkPreviews] = useState<DocumentChunk[]>([]);
   const [loadingChunks, setLoadingChunks] = useState(false);
@@ -152,21 +154,7 @@ export function SourceCard({
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      // Delete chunks first
-      const { error: chunksError } = await supabase
-        .from("document_chunks")
-        .delete()
-        .eq("source_id", id);
-
-      if (chunksError) throw chunksError;
-
-      // Delete the source
-      const { error: sourceError } = await supabase
-        .from("knowledge_sources")
-        .delete()
-        .eq("id", id);
-
-      if (sourceError) throw sourceError;
+      await deleteKnowledgeSource(id);
 
       toast({
         title: "Source deleted",

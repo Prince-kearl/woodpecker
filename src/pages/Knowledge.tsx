@@ -18,7 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/hooks/queryKeys";
 import type { Database } from "@/integrations/supabase/types";
 
 type KnowledgeSource = Database["public"]["Tables"]["knowledge_sources"]["Row"];
@@ -31,6 +33,7 @@ const uploadTabs = [
 
 export default function Knowledge() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadTab, setUploadTab] = useState("files");
@@ -70,6 +73,8 @@ export default function Knowledge() {
         (payload) => {
           if (payload.eventType === "INSERT") {
             setSources((prev) => [payload.new as KnowledgeSource, ...prev]);
+            // Invalidate React Query cache
+            queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeSources.all });
           } else if (payload.eventType === "UPDATE") {
             setSources((prev) =>
               prev.map((s) =>
@@ -78,10 +83,14 @@ export default function Knowledge() {
                   : s
               )
             );
+            // Invalidate React Query cache
+            queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeSources.all });
           } else if (payload.eventType === "DELETE") {
             setSources((prev) =>
               prev.filter((s) => s.id !== (payload.old as KnowledgeSource).id)
             );
+            // Invalidate React Query cache
+            queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeSources.all });
           }
         }
       )
@@ -90,15 +99,32 @@ export default function Knowledge() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchSources]);
+  }, [fetchSources, queryClient]);
 
   const filteredSources = sources.filter(source =>
     source.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleSourceDeleted = useCallback((sourceId: string) => {
+    // Remove from local state immediately
+    setSources((prev) => prev.filter((s) => s.id !== sourceId));
+    // Invalidate React Query cache
+    queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeSources.all });
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.all });
+    queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
+  }, [queryClient]);
+
   const handleFilesUploaded = (sourceIds: string[]) => {
     console.log("Sources created:", sourceIds);
     setShowUploadModal(false);
+    
+    // Refetch sources to show the newly uploaded ones
+    // Use a small delay to let the backend confirm the writes
+    setTimeout(() => {
+      fetchSources();
+      queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeSources.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.all });
+    }, 500);
   };
 
   const handleWebsiteSubmit = async () => {
@@ -126,6 +152,12 @@ export default function Knowledge() {
       }
 
       if (data?.success) {
+        // Refetch sources to get the newly created ones
+        await fetchSources();
+        // Invalidate React Query cache
+        queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeSources.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.all });
+        
         toast({
           title: "Website ingested successfully",
           description: `Created ${data.chunkCount} chunks from ${data.pageCount} page(s).`,
@@ -444,7 +476,8 @@ export default function Knowledge() {
                 originalUrl={source.original_url}
                 mimeType={source.mime_type}
                 errorMessage={source.error_message}
-                delay={0.2 + index * 0.03} 
+                delay={0.2 + index * 0.03}
+                onDelete={() => handleSourceDeleted(source.id)}
               />
             ))}
           </div>

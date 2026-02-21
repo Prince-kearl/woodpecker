@@ -9,6 +9,11 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     middlewareMode: false,
     historyApiFallback: true,
+    hmr: {
+      protocol: "ws",
+      host: "localhost",
+      port: 8080,
+    },
   },
   plugins: [react()],
   resolve: {

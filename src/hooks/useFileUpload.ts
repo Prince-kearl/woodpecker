@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { queryKeys } from "@/hooks/queryKeys";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
@@ -49,6 +51,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
   const { maxFileSize = 50, maxFiles = 10, onComplete } = options;
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const queryClient = useQueryClient();
 
   const getFileExtension = (filename: string) => {
     return filename.split(".").pop()?.toLowerCase() || "";
@@ -114,6 +117,10 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
       if (dbError) {
         throw new Error(dbError.message);
       }
+
+      // Invalidate knowledge sources queries using standardized keys
+      await queryClient.invalidateQueries({ queryKey: queryKeys.knowledgeSources.all });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats.all });
 
       // Trigger document processing in background
       supabase.functions.invoke("process-document", {

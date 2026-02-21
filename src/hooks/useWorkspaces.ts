@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { queryKeys } from "./queryKeys";
 import type { Database } from "@/integrations/supabase/types";
 
 type Workspace = Database["public"]["Tables"]["workspaces"]["Row"];
@@ -26,7 +27,7 @@ export function useWorkspaces() {
         },
         () => {
           // Invalidate and refetch
-          queryClient.invalidateQueries({ queryKey: ["workspaces", user.id] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.byUserId(user.id) });
         }
       )
       .subscribe();
@@ -37,7 +38,7 @@ export function useWorkspaces() {
   }, [user, queryClient]);
 
   return useQuery({
-    queryKey: ["workspaces", user?.id],
+    queryKey: queryKeys.workspaces.byUserId(user?.id || ""),
     queryFn: async () => {
       if (!user) return [];
       
@@ -58,7 +59,7 @@ export function useWorkspace(id: string | undefined) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["workspace", id],
+    queryKey: queryKeys.workspaces.detail(id || ""),
     queryFn: async () => {
       if (!user || !id) return null;
       

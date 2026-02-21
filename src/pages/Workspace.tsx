@@ -11,6 +11,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useConversations } from "@/hooks/useConversations";
+import { useWorkspaceSourceMutations, useWorkspaceMutations } from "@/hooks/useMutations";
 import type { Database } from "@/integrations/supabase/types";
 
 type Mode = Database["public"]["Enums"]["workspace_mode"];
@@ -33,6 +34,8 @@ interface Source {
 export default function Workspace() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { addSourceToWorkspace, removeSourceFromWorkspace } = useWorkspaceSourceMutations();
+  const { updateWorkspaceMode } = useWorkspaceMutations();
 
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
   const [sources, setSources] = useState<Source[]>([]);
@@ -52,9 +55,10 @@ export default function Workspace() {
     loading: conversationsLoading,
   } = useConversations(id);
 
-  // Fetch workspace and sources
+  // Fetch workspace and sources with real-time subscriptions
   useEffect(() => {
     if (!id) return;
+
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -74,9 +78,8 @@ export default function Workspace() {
 
         const { data: allSources, error: sourcesError } = await supabase
           .from("knowledge_sources")
-          .select("id, name, source_type, chunk_count")
-          .eq("status", "ready")
-          .order("name");
+          .select("id, name, source_type, chunk_count, status")
+          .order("created_at", { ascending: false });
 
         if (!sourcesError) {
           setSources(
@@ -100,7 +103,76 @@ export default function Workspace() {
         setLoading(false);
       }
     };
+
     fetchData();
+
+    // Real-time subscription for workspace changes
+    const workspaceChannel = supabase
+      .channel(`workspace-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workspaces",
+          filter: `id=eq.${id}`,
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for knowledge sources changes
+    const sourcesChannel = supabase
+      .channel(`knowledge-sources-workspace`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "knowledge_sources",
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for workspace sources changes
+    const workspaceSourcesChannel = supabase
+      .channel(`workspace-sources-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workspace_sources",
+          filter: `workspace_id=eq.${id}`,
+        },
+        async (payload) => {
+          // Immediately refetch linked sources on any change
+          const { data: linkedSources } = await supabase
+            .from("workspace_sources")
+            .select("source_id")
+            .eq("workspace_id", id)
+            .eq("is_enabled", true);
+          
+          if (linkedSources) {
+            setSelectedSourceIds(linkedSources.map((ls) => ls.source_id));
+          }
+          
+          // Also refetch all data
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(workspaceChannel);
+      supabase.removeChannel(sourcesChannel);
+      supabase.removeChannel(workspaceSourcesChannel);
+    };
   }, [id, navigate]);
 
   const toggleSource = async (sourceId: string) => {
@@ -109,15 +181,24 @@ export default function Workspace() {
     const isCurrentlySelected = selectedSourceIds.includes(sourceId);
     try {
       if (isCurrentlySelected) {
-        const { error } = await supabase.from("workspace_sources").delete().eq("workspace_id", id).eq("source_id", sourceId);
-        if (error) throw error;
+        await removeSourceFromWorkspace(id, sourceId);
         setSelectedSourceIds((prev) => prev.filter((sid) => sid !== sourceId));
         toast.success("Source removed from workspace");
       } else {
-        const { error } = await supabase.from("workspace_sources").insert({ workspace_id: id, source_id: sourceId });
-        if (error) throw error;
+        await addSourceToWorkspace(id, sourceId);
         setSelectedSourceIds((prev) => [...prev, sourceId]);
         toast.success("Source added to workspace");
+      }
+      
+      // Refetch data to ensure UI is in sync
+      const { data: linkedSources } = await supabase
+        .from("workspace_sources")
+        .select("source_id")
+        .eq("workspace_id", id)
+        .eq("is_enabled", true);
+      
+      if (linkedSources) {
+        setSelectedSourceIds(linkedSources.map((ls) => ls.source_id));
       }
     } catch (error) {
       console.error("Error toggling source:", error);
@@ -130,8 +211,7 @@ export default function Workspace() {
   const handleModeChange = async (newMode: Mode) => {
     if (!id || !workspace) return;
     try {
-      const { error } = await supabase.from("workspaces").update({ mode: newMode }).eq("id", id);
-      if (error) throw error;
+      await updateWorkspaceMode(id, newMode);
       setWorkspace({ ...workspace, mode: newMode });
       toast.success("Mode updated");
     } catch (error) {
